@@ -1,0 +1,1 @@
+{"textures": ["../3446264/milkyway_posx.png", "../3446268/milkyway_negx.png", "../3446263/milkyway_posy.png", "../3446267/milkyway_negy.png", "../3446266/milkyway_posz.png", "../3446265/milkyway_negz.png"], "minFilter": 5, "name": "New Cubemap", "magFilter": 1, "rgbm": true, "anisotropy": 1, "prefiltered": "Milkyway.dds"}
