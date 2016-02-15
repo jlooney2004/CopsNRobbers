@@ -5,8 +5,8 @@ pc.script.create('ufo', function (app) {
 		this.entity		= entity;
 		// Physics vars
 		this.TIME_MULT	= 1;				// Time multiplier (for slo-mo)
-		this.MAX_SPEED	= 0.5;				// Maximum speed
-		this.ACCEL		= 0.01;				// Acceleration
+		this.MAX_SPEED	= 0.08;				// Maximum speed
+		this.ACCEL		= 0.001;			// Acceleration
 		this.quatNow 	= new pc.Quat();	// Current angle
 		this.quatTrg 	= new pc.Quat();	// Target angle
 		this.rotAlpha	= 0;
@@ -35,6 +35,7 @@ pc.script.create('ufo', function (app) {
 
 		// Ufo will move toward angle
 		moveToAngle: function (yAngle, dt) {
+			this.moving = true;
 			if(yAngle !== this.prevAngle){
 				this.rotAlpha = 0;
 				this.timeDelta = 0;
@@ -57,6 +58,7 @@ pc.script.create('ufo', function (app) {
 		},
 
 		decelerate: function (dt) {
+			this.moving = false;
 			if(this.velocity === 0) return false;
 
 			this.velocity -= this.ACCEL * 2;
@@ -107,7 +109,7 @@ pc.script.create('ufo', function (app) {
 
 		reset: function(){
 			this.prevAngle = 0;
-			this.entity.setPosition(0, 3, 0);
+			this.entity.setPosition(0, 1.5, 0);
 			// this.entity.rigidbody.teleport(0, 3, 0, 0, 0, 0);
 		},
 

@@ -1,9 +1,3 @@
-// Roboblasters notes:
-// Hands-free mode: No hands allowed
-// No-wheels mode: Cannot move 
-
-pc.script.attribute("torque", "number", 40);
-
 pc.script.create('bot', function (app) {
 	// Creates a new Bot instance
 	var Bot = function (entity) {
@@ -21,6 +15,7 @@ pc.script.create('bot', function (app) {
 		// Called once after all resources are loaded and before the first update
 		initialize: function () {
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
+			this.entity.collision.on("collisionstart", this.bumped.bind(this));
 		},
 		
 		// Called every frame, dt is time in seconds since last update
@@ -61,6 +56,11 @@ pc.script.create('bot', function (app) {
 			this.reset();
 		},
 
+		bumped: function(result){
+			// console.log(result);
+			app.root.findByName("Root").script.control.changeDirection();
+		},
+
 		btnA: function(){
 
 		},
@@ -70,7 +70,11 @@ pc.script.create('bot', function (app) {
 		},
 
 		reset: function(){
-			this.entity.rigidbody.teleport(0, 1.65, 0, 0, 0, 0);
+			if(this.entity.getPosition().x > 0){
+				this.entity.rigidbody.teleport(-10, 0.3, 0, 0, 0, 0);
+			}else{
+				this.entity.rigidbody.teleport(10, 0.3, 0, 0, 0, 0);
+			}
 		}
 	};
 
