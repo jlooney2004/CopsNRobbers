@@ -18,7 +18,6 @@ pc.script.create('control2', function (app) {
 		
 		// Called every frame, dt is time in seconds since last update
 		update: function (dt) {
-			TWEEN.update();
 			this.vectorX = 0;
 			this.vectorZ = 0;
 

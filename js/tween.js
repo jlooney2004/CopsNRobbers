@@ -71,7 +71,7 @@ TWEEN.Tween = function (object) {
 	var _reversed = false;
 	var _delayTime = 0;
 	var _startTime = null;
-	var _easingFunction = TWEEN.Easing.Linear.None;
+	var _easingFunction = TWEEN.Ez.Lin.None;
 	var _interpolationFunction = TWEEN.Interpolation.Linear;
 	var _chainedTweens = [];
 	var _onStartCallback = null;
@@ -284,21 +284,21 @@ TWEEN.Tween = function (object) {
 	};
 };
 
-TWEEN.Easing = {
-	Linear: {
+TWEEN.Ez = {
+	Lin: {
 		None: function (k) {
 			return k;
 		}
 	},
 
-	Quadratic: {
-		In: function (k) {
+	Pow2: {
+		I: function (k) {
 			return k * k;
 		},
-		Out: function (k) {
+		O: function (k) {
 			return k * (2 - k);
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if ((k *= 2) < 1) {
 				return 0.5 * k * k;
 			}
@@ -306,14 +306,14 @@ TWEEN.Easing = {
 		}
 	},
 
-	Cubic: {
-		In: function (k) {
+	Pow3: {
+		I: function (k) {
 			return k * k * k;
 		},
-		Out: function (k) {
+		O: function (k) {
 			return --k * k * k + 1;
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if ((k *= 2) < 1) {
 				return 0.5 * k * k * k;
 			}
@@ -321,14 +321,14 @@ TWEEN.Easing = {
 		}
 	},
 
-	Quartic: {
-		In: function (k) {
+	Pow4: {
+		I: function (k) {
 			return k * k * k * k;
 		},
-		Out: function (k) {
+		O: function (k) {
 			return 1 - (--k * k * k * k);
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if ((k *= 2) < 1) {
 				return 0.5 * k * k * k * k;
 			}
@@ -336,14 +336,14 @@ TWEEN.Easing = {
 		}
 	},
 
-	Quintic: {
-		In: function (k) {
+	Pow5: {
+		I: function (k) {
 			return k * k * k * k * k;
 		},
-		Out: function (k) {
+		O: function (k) {
 			return --k * k * k * k * k + 1;
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if ((k *= 2) < 1) {
 				return 0.5 * k * k * k * k * k;
 			}
@@ -351,26 +351,26 @@ TWEEN.Easing = {
 		}
 	},
 
-	Sinusoidal: {
-		In: function (k) {
+	Sin: {
+		I: function (k) {
 			return 1 - Math.cos(k * Math.PI / 2);
 		},
-		Out: function (k) {
+		O: function (k) {
 			return Math.sin(k * Math.PI / 2);
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			return 0.5 * (1 - Math.cos(Math.PI * k));
 		}
 	},
 
-	Exponential: {
-		In: function (k) {
+	Exp: {
+		I: function (k) {
 			return k === 0 ? 0 : Math.pow(1024, k - 1);
 		},
-		Out: function (k) {
+		O: function (k) {
 			return k === 1 ? 1 : 1 - Math.pow(2, - 10 * k);
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if (k === 0) {
 				return 0;
 			}
@@ -384,14 +384,14 @@ TWEEN.Easing = {
 		}
 	},
 
-	Circular: {
-		In: function (k) {
+	Circ: {
+		I: function (k) {
 			return 1 - Math.sqrt(1 - k * k);
 		},
-		Out: function (k) {
+		O: function (k) {
 			return Math.sqrt(1 - (--k * k));
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if ((k *= 2) < 1) {
 				return - 0.5 * (Math.sqrt(1 - k * k) - 1);
 			}
@@ -399,8 +399,8 @@ TWEEN.Easing = {
 		}
 	},
 
-	Elastic: {
-		In: function (k) {
+	Elst: {
+		I: function (k) {
 			var s;
 			var a = 0.1;
 			var p = 0.4;
@@ -418,7 +418,7 @@ TWEEN.Easing = {
 			}
 			return - (a * Math.pow(2, 10 * (k -= 1)) * Math.sin((k - s) * (2 * Math.PI) / p));
 		},
-		Out: function (k) {
+		O: function (k) {
 			var s;
 			var a = 0.1;
 			var p = 0.4;
@@ -436,7 +436,7 @@ TWEEN.Easing = {
 			}
 			return (a * Math.pow(2, - 10 * k) * Math.sin((k - s) * (2 * Math.PI) / p) + 1);
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			var s;
 			var a = 0.1;
 			var p = 0.4;
@@ -460,15 +460,15 @@ TWEEN.Easing = {
 	},
 
 	Back: {
-		In: function (k) {
+		I: function (k) {
 			var s = 1.70158;
 			return k * k * ((s + 1) * k - s);
 		},
-		Out: function (k) {
+		O: function (k) {
 			var s = 1.70158;
 			return --k * k * ((s + 1) * k + s) + 1;
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			var s = 1.70158 * 1.525;
 			if ((k *= 2) < 1) {
 				return 0.5 * (k * k * ((s + 1) * k - s));
@@ -478,10 +478,10 @@ TWEEN.Easing = {
 	},
 
 	Bounce: {
-		In: function (k) {
-			return 1 - TWEEN.Easing.Bounce.Out(1 - k);
+		I: function (k) {
+			return 1 - TWEEN.Ez.Bounce.Out(1 - k);
 		},
-		Out: function (k) {
+		O: function (k) {
 			if (k < (1 / 2.75)) {
 				return 7.5625 * k * k;
 			} else if (k < (2 / 2.75)) {
@@ -492,11 +492,11 @@ TWEEN.Easing = {
 				return 7.5625 * (k -= (2.625 / 2.75)) * k + 0.984375;
 			}
 		},
-		InOut: function (k) {
+		IO: function (k) {
 			if (k < 0.5) {
-				return TWEEN.Easing.Bounce.In(k * 2) * 0.5;
+				return TWEEN.Ez.Bounce.In(k * 2) * 0.5;
 			}
-			return TWEEN.Easing.Bounce.Out(k * 2 - 1) * 0.5 + 0.5;
+			return TWEEN.Ez.Bounce.Out(k * 2 - 1) * 0.5 + 0.5;
 		}
 	}
 };
@@ -579,6 +579,8 @@ TWEEN.Interpolation = {
 		}
 	}
 };
+
+var Ez = TWEEN.Ez;
 
 // UMD (Universal Module Definition)
 (function (root) {

@@ -3,6 +3,7 @@ pc.script.create('ufo', function (app) {
 	var Ufo = function (entity) {
 		// UFO parts
 		this.entity		= entity;
+
 		// Physics vars
 		this.TIME_MULT	= 1;				// Time multiplier (for slo-mo)
 		this.MAX_SPEED	= 0.08;				// Maximum speed
@@ -12,10 +13,12 @@ pc.script.create('ufo', function (app) {
 		this.rotAlpha	= 0;
 		this.prevAngle	= 0;
 		this.timeDelta	= 0;
-		this.t 			= 0;
 		this.velocity	= 0;
 		this.moving		= false;
+		// Communication with other entities
 		this.victim		= null;
+		// Status variables
+		this.beamCoolDown	= 0;
 		// Components
 		this.beamParticle = null;
 	};
@@ -31,6 +34,9 @@ pc.script.create('ufo', function (app) {
 		
 		// Called every frame, dt is time in seconds since last update
 		update: function (dt) {
+			if(this.beamCoolDown > 0){
+				this.beamCoolDown -= dt;
+			}
 		},
 
 		// Ufo will move toward angle
@@ -54,7 +60,6 @@ pc.script.create('ufo', function (app) {
 			this.velocity += this.ACCEL;
 			this.velocity = Math.min(this.velocity, this.MAX_SPEED);
 			this.entity.translateLocal(0, 0, this.velocity);
-			// this.entity.rigidbody.syncEntityToBody();
 		},
 
 		decelerate: function (dt) {
@@ -65,42 +70,33 @@ pc.script.create('ufo', function (app) {
 			this.velocity = Math.max(this.velocity, 0);
 
 			this.entity.translateLocal(0, 0, this.velocity);
-			// this.entity.rigidbody.syncEntityToBody();
-		},
-
-		// Animates rotation
-		updateRotation: function(dt){
-			// When animation is over
-			if(this.t >= 1){
-				this.rotationComplete();
-			}
-		},
-		
-		// At the end of a rotation
-		rotationComplete: function(){
-			this.quatNow 	= this.entity.getRotation();
-			this.frameCount = 0;
-			this.t = 0;
 		},
 
 		// Hovers over entity
 		hoverOver: function(result){
-			this.victim = result.script.bot;
-			this.victim.enterDanger();
+			if(result.getName() === "Bot1"){
+				this.victim = result.script.bot;
+				this.victim.enterDanger();
+			}
 		},
 
 		// Hovers off entity
 		hoverOut: function(result){
-			this.victim.exitDanger();
-			this.victim = null;
+			if(result.getName() === "Bot1"){
+				this.victim.exitDanger();
+				this.victim = null;
+			}
 		},
 
 		btnA: function(){
+			if(this.beamCoolDown > 0) return false;
+
 			if(this.victim !== null){
 				this.victim.abduct();
 			}
-			this.beamParticle.play();
 			this.beamParticle.reset();
+			this.beamParticle.play();
+			this.beamCoolDown = 2;
 		},
 
 		btnB: function(){
@@ -109,28 +105,11 @@ pc.script.create('ufo', function (app) {
 
 		reset: function(){
 			this.prevAngle = 0;
-			this.entity.setPosition(0, 1.5, 0);
+			this.entity.setPosition(-15, 1.5, 0);
 			// this.entity.rigidbody.teleport(0, 3, 0, 0, 0, 0);
-		},
-
-		liftArms: function(){
-
-		},
-
-		dropBombF: function(){
-
-		},
-
-		dropBombB: function(){
-
-		},
-
-		createBomb: function(direction){
-
 		}
 	};
 
 	return Ufo;
 });
-
 

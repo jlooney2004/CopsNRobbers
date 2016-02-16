@@ -36,30 +36,7 @@ pc.script.create('control', function (app) {
 			TWEEN.update();
 			this.vectorX = 0;
 			this.vectorZ = 0;
-			this.posTimer += dt;
-			if(this.posTimer > this.posTimerMax){
-				this.changeDirection();
-			}
-
-			// WASD Controls
-			if(this.directionX === 1){
-				this.vectorX --;
-			}
-			if(this.directionX === 2){
-				this.vectorX ++;
-			}
-			if(this.directionZ === 1){
-				this.vectorZ --;
-			}
-			if(this.directionZ === 2){
-				this.vectorZ ++;
-			}
-			if(this.vectorX !== 0 || this.vectorZ !== 0){
-				this.buttonMove(dt);
-			}else{
-				this.noButtonMove(dt);
-			}
-			/*
+			
 			// WASD Controls
 			if(app.keyboard.isPressed(pc.KEY_A)){
 				this.vectorX --;
@@ -76,8 +53,30 @@ pc.script.create('control', function (app) {
 			if(this.vectorX !== 0 || this.vectorZ !== 0){
 				this.buttonMove(dt);
 			}else{
-				this.noButtonMove(dt);
+				this.posTimer += dt;
+				if(this.posTimer > this.posTimerMax){
+					this.changeDirection();
+				}
+				// Auto controls
+				if(this.directionX === 1){
+					this.vectorX --;
+				}
+				if(this.directionX === 2){
+					this.vectorX ++;
+				}
+				if(this.directionZ === 1){
+					this.vectorZ --;
+				}
+				if(this.directionZ === 2){
+					this.vectorZ ++;
+				}
+				if(this.vectorX !== 0 || this.vectorZ !== 0){
+					this.buttonMove(dt);
+				}else{
+					this.noButtonMove(dt);
+				}
 			}
+
 			// A Button
 			if(app.keyboard.wasPressed(pc.KEY_O)){
 				this.receiver.btnA();
@@ -87,8 +86,7 @@ pc.script.create('control', function (app) {
 			if(app.keyboard.wasPressed(pc.KEY_P)){
 				this.receiver.btnB();
 			}
-			
-			*/
+
 			// Reset
 			if(app.keyboard.wasPressed(pc.KEY_R)){
 				this.receiver.reset();
