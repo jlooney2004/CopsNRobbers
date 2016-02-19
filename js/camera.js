@@ -8,7 +8,8 @@ pc.script.create('camera', function (app) {
     Camera.prototype = {
         // Called once after all resources are loaded and before the first update
         initialize: function () {
-            this.focus = app.root.findByName("UFO");
+            // this.focus = app.root.findByName("UFO");
+            this.focus = app.root.findByName("Bot");
         },
 
         // Called every frame, dt is time in seconds since last update

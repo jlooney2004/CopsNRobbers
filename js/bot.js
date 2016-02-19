@@ -17,8 +17,8 @@ pc.script.create('bot', function (app) {
 		// Called once after all resources are loaded and before the first update
 		initialize: function () {
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
-			this.entity.collision.on("triggerenter", this.hoverOver.bind(this));
-			this.entity.collision.on("triggerleave", this.hoverOut.bind(this));
+			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
+			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
 		},
 		
 		// Called every frame, dt is time in seconds since last update
@@ -72,42 +72,37 @@ pc.script.create('bot', function (app) {
 			}
 		},
 
-		////////////////////////////// EXTERNAL EVENTS ////////////////////////////// 
-		// When picking up item
-		pickup: function(item){
-			if(item.getName() === "Gadget"){
-				this.itemCarry = item.script.gadget;
-				this.itemCarry.pickup(this.entity);
-			}
-		},
-
+		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
 		// When being abducted
 		abduct: function(){
 			// Drop item being carried
 			if(this.itemCarry !== null){
-				this.itemCarry.drop();
+				this.itemCarry.dropped();
 				this.itemCarry = null;
 			}
 			this.reset();
 		},
 
-		// Enter trigger volume
-		hoverOver: function(result){
-			console.log("HoverOver: " + result.getName());
-			/*if(result.getName() === "UFO"){
-				this.enterDanger();
-			}else if(result.getName() === "Gadget"){
-				this.itemCarry = result.script.gadget;
-				this.itemCarry.pickup();
-			}*/
+		onTriggerEnter: function(result){
+			switch(result.getName()){
+				case "UFO":
+					this.enterDanger();
+				break;
+				case "Gadget":
+					this.itemCarry = result.script.gadget;
+				break;
+			}
 		},
 
-		// Exit trigger volume
-		hoverOut: function(result){
-			console.log("HoverOut: " + result.getName());
-			/*if(result.getName() === "UFO"){
-				this.exitDanger();
-			}*/
+		onTriggerLeave: function(result){
+			switch(result.getName()){
+				case "UFO":
+					this.exitDanger();
+				break;
+				case "Gadget":
+					this.itemCarry = null;
+				break;
+			}
 		}
 	};
 

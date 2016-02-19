@@ -28,8 +28,8 @@ pc.script.create('ufo', function (app) {
 		initialize: function () {
 			this.quatNow 	= this.entity.getRotation();
 			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
-			this.entity.collision.on("triggerenter", this.hoverOver.bind(this));
-			this.entity.collision.on("triggerleave", this.hoverOut.bind(this));
+			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
+			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
 		},
 		
 		// Called every frame, dt is time in seconds since last update
@@ -39,6 +39,19 @@ pc.script.create('ufo', function (app) {
 			}
 		},
 
+		///////////////////////////////////// BEHAVIORS /////////////////////////////////////
+		fireBeam: function(){
+			if(this.beamCoolDown > 0) return false;
+
+			if(this.victim !== null){
+				this.victim.abduct();
+			}
+			this.beamParticle.reset();
+			this.beamParticle.play();
+			this.beamCoolDown = 2;
+		},
+
+		///////////////////////////////////// CONTROL LISTENERS /////////////////////////////////////
 		// Ufo will move toward angle
 		moveToAngle: function (yAngle, dt) {
 			this.moving = true;
@@ -72,31 +85,8 @@ pc.script.create('ufo', function (app) {
 			this.entity.translateLocal(0, 0, this.velocity);
 		},
 
-		// Hovers over entity
-		hoverOver: function(result){
-			if(result.getName() === "Bot1"){
-				this.victim = result.script.bot;
-				this.victim.enterDanger();
-			}
-		},
-
-		// Hovers off entity
-		hoverOut: function(result){
-			if(result.getName() === "Bot1"){
-				this.victim.exitDanger();
-				this.victim = null;
-			}
-		},
-
 		btnA: function(){
-			if(this.beamCoolDown > 0) return false;
-
-			if(this.victim !== null){
-				this.victim.abduct();
-			}
-			this.beamParticle.reset();
-			this.beamParticle.play();
-			this.beamCoolDown = 2;
+			this.fireBeam();
 		},
 
 		btnB: function(){
@@ -107,6 +97,25 @@ pc.script.create('ufo', function (app) {
 			this.prevAngle = 0;
 			this.entity.setPosition(-15, 1.5, 0);
 			// this.entity.rigidbody.teleport(0, 3, 0, 0, 0, 0);
+		},
+
+		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
+		onTriggerEnter: function(result){
+			if (result.collision) {result.collision.fire("triggerenter", this.entity);}
+			switch(result.getName()){
+				case "Bot":
+					this.victim = result.script.bot;
+				break;
+			}
+		},
+
+		onTriggerLeave: function(result){
+			if (result.collision) {result.collision.fire("triggerleave", this.entity);}
+			switch(result.getName()){
+				case "Bot":
+					this.victim = null;
+				break;
+			}
 		}
 	};
 

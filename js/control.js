@@ -26,7 +26,7 @@ pc.script.create('control', function (app) {
 	Control.prototype = {
 		// Called once after all resources are loaded and before the first update
 		initialize: function () {
-			this.receiver	= app.root.findByName("Bot1").script.bot;
+			this.receiver	= app.root.findByName("Bot").script.bot;
 			this.changeDirection();
 			// this.receiver	= app.root.findByName("UFO").script.ufo;
 		},

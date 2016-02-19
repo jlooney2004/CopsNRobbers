@@ -20,7 +20,8 @@ pc.script.create('gadget', function (app) {
 		// Called once after all resources are loaded and before the first update
 		initialize: function () {
 			this.startHoverAnim();
-			this.entity.collision.on("triggerenter", this.touched.bind(this));
+			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
+			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
 		},
 
 		// Called every frame, dt is time in seconds since last update
@@ -35,17 +36,7 @@ pc.script.create('gadget', function (app) {
 			this.twRotate.to({yAngle: 359}, 4000).easing(Ez.Lin.None).repeat(Infinity).start();
 		},
 
-		// Something has touched the gadget
-		touched: function(result){
-			if(this.captured) return false;
-
-			if(result.getName() === "Bot1"){
-				result.script.bot.pickup(this.entity);
-			}
-		},
-
-		pickup: function(newHolder){
-			console.log("Picked up");
+		pickedUp: function(newHolder){
 			this.captured = true;
 			this.holder = newHolder;
 			this.animVars.yPos = this.entity.getPosition().y - this.holder.getPosition().y;
@@ -55,7 +46,7 @@ pc.script.create('gadget', function (app) {
 			this.twRotate.to({yAngle: 0}, 250).repeat(0).easing(Ez.Pow2.O).start();
 		},
 
-		drop: function(){
+		dropped: function(){
 			this.entity.reparent(app.root.findByName("Root"));
 			this.posTarget = this.holder.getPosition().clone();
 			this.animVars.yPos = this.posTarget.y;
@@ -63,6 +54,31 @@ pc.script.create('gadget', function (app) {
 			this.holder = null;
 			this.captured = false;
 			console.log(this.entity.getPosition().toString());
+		},
+		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
+		onTriggerEnter: function(result){
+			if (result.collision) { result.collision.fire("triggerenter", this.entity); }
+			if(this.captured) return false;
+
+			switch(result.getName()){
+				case "Bot":
+					this.holder = result.script.bot;
+					this.pickedUp(result);
+				break;
+				case "UFO":
+				break;
+			}
+		},
+
+		onTriggerLeave: function(result){
+			if (result.collision) { result.collision.fire("triggerleave", this.entity); }
+
+			switch(result.getName()){
+				case "Bot":
+				break;
+				case "UFO":
+				break;
+			}
 		}
 	};
 
