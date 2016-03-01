@@ -597,3 +597,13 @@ var Ez = TWEEN.Ez;
 		root.TWEEN = TWEEN;
 	}
 })(this);
+
+// Random integer, min included, max not included
+function getRandInt(min, max) {
+	return Math.floor(Math.random() * (max - min)) + min;
+}
+
+// Random float, min (inclusive) and max (exclusive)
+function getRandNo(min, max) {
+	return Math.random() * (max - min) + min;
+}

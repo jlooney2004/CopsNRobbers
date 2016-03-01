@@ -3,6 +3,7 @@ pc.script.create('ufo', function (app) {
 	var Ufo = function (entity) {
 		// UFO parts
 		this.entity		= entity;
+		this.controller = null;
 
 		// Physics vars
 		this.TIME_MULT	= 1;				// Time multiplier (for slo-mo)
@@ -19,6 +20,9 @@ pc.script.create('ufo', function (app) {
 		this.victim		= null;
 		// Status variables
 		this.beamCoolDown	= 0;
+        this.oldPos = null;
+        this.newPos = null;
+        this.posTimer = 0;
 		// Components
 		this.beamParticle = null;
 	};
@@ -30,6 +34,9 @@ pc.script.create('ufo', function (app) {
 			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
+			
+            this.newPos = this.entity.getPosition();
+            this.oldPos = new pc.Vec3();
 		},
 		
 		// Called every frame, dt is time in seconds since last update
@@ -37,6 +44,18 @@ pc.script.create('ufo', function (app) {
 			if(this.beamCoolDown > 0){
 				this.beamCoolDown -= dt;
 			}
+
+            this.posTimer += dt;
+            if(this.posTimer >= 0.2 && !this.newPos.equals(this.oldPos)){
+                this.oldPos = this.newPos.clone();
+                this.controller.receiverMoved();
+                this.posTimer = 0;
+            }
+		},
+
+		// Connect to controller
+		connect: function(controller){
+			this.controller = controller;
 		},
 
 		///////////////////////////////////// BEHAVIORS /////////////////////////////////////

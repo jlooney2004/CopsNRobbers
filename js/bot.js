@@ -3,6 +3,7 @@ pc.script.create('bot', function (app) {
 	var Bot = function (entity) {
 		// Robot parts
 		this.entity		= entity;
+		this.controller = null;
 
 		// Physics vars
 		this.TIME_MULT	= 1;				// Time multiplier (for slo-mo)
@@ -11,6 +12,11 @@ pc.script.create('bot', function (app) {
 		this.velocity	= 0;
 		this.faceMaterial	= null;
 		this.itemCarry	= null;				// Will contain gadget
+
+		// Status variables
+        this.oldPos = null;
+        this.newPos = null;
+        this.posTimer = 0;
 	};
 
 	Bot.prototype = {
@@ -19,10 +25,24 @@ pc.script.create('bot', function (app) {
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
+			
+            this.newPos = this.entity.getPosition();
+            this.oldPos = new pc.Vec3();
 		},
 		
 		// Called every frame, dt is time in seconds since last update
 		update: function (dt) {
+            this.posTimer += dt;
+            if(this.posTimer >= 0.2 && !this.newPos.equals(this.oldPos)){
+                this.oldPos = this.newPos.clone();
+                this.controller.receiverMoved();
+                this.posTimer = 0;
+            }
+		},
+
+		// Connect to controller
+		connect: function(controller){
+			this.controller = controller;
 		},
 
 		// Bot will move toward angle
@@ -35,6 +55,7 @@ pc.script.create('bot', function (app) {
 			this.entity.rigidbody.syncEntityToBody();
 		},
 
+		// Decelerates when no button is pressed
 		decelerate: function (dt) {
 			if(this.velocity === 0) return false;
 
