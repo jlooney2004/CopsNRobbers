@@ -12,6 +12,8 @@ function Player(id, type){
 		this.z = getRandInt(-5, 5);
 	}
 	this.a = 0;
+	this.b = 0;
+	this.c = 0;
 }
 
 Player.prototype = {

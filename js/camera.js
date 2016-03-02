@@ -1,23 +1,47 @@
 pc.script.create('camera', function (app) {
-    // Creates a new Camera instance
-    var Camera = function (entity) {
-        this.entity = entity;
-        this.difference = new pc.Vec3(0, 3.5, 5);
-    };
+	// Creates a new Camera instance
+	var Camera = function (entity) {
+		this.entity = entity;
+		this.status = "disconnected";
+		this.focus = null;
 
-    Camera.prototype = {
-        // Called once after all resources are loaded and before the first update
-        initialize: function () {
-            // this.focus = app.root.findByName("UFO");
-            // this.focus = app.root.findByName("Bot");
-        },
+		this.vecTarget = new pc.Vec3();
+		this.vecActual = new pc.Vec3();
+		this.vecLerp = new pc.Vec3();
+	};
 
-        // Called every frame, dt is time in seconds since last update
-        update: function (dt) {
-            // this.entity.setPosition(this.focus.getPosition().x / 2, 10, (this.focus.getPosition().z + 19) / 2);
-            // this.entity.lookAt(this.focus.getPosition());
-        }
-    };
+	Camera.prototype = {
+		// Called once after all resources are loaded and before the first update
+		initialize: function () {
+			this.vecActual = this.entity.getPosition();
+		},
+		
+		postUpdate: function(dt){
+			if(this.focus === null){return false;}
+			this.vecTarget = this.focus.getPosition();
+			this.vecTarget.x /= 1.3;
+			this.vecTarget.y = 10;
+			this.vecTarget.z = (this.vecTarget.z + 10) / 1.3;
+			this.vecActual.lerp(this.vecActual, this.vecTarget, dt);
+			this.entity.setPosition(this.vecActual);
+			// this.entity.setPosition(this.focus.getPosition().x / 1.3, 10, (this.focus.getPosition().z + 10) / 1.3);
+			this.entity.lookAt(this.focus.getPosition());
+		},
 
-    return Camera;
+		// Focus on player
+		connect: function(focus){
+			this.status = "connected";
+			this.focus = focus;
+			this.vecTarget = focus.getPosition();
+			this.vecTarget.y =  10;
+		},
+
+		// Focus on stage
+		disconnect: function(focus){
+			this.status = "disconnected";
+			this.focus = null;
+		}
+	};
+
+	return Camera;
 });

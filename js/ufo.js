@@ -45,17 +45,13 @@ pc.script.create('ufo', function (app) {
 				this.beamCoolDown -= dt;
 			}
 
+            this.newPos = this.entity.getPosition();
             this.posTimer += dt;
-            if(this.posTimer >= 0.2 && !this.newPos.equals(this.oldPos)){
+            if(this.posTimer >= 0.02 && !this.newPos.equals(this.oldPos)){
                 this.oldPos = this.newPos.clone();
                 this.controller.receiverMoved();
                 this.posTimer = 0;
             }
-		},
-
-		// Connect to controller
-		connect: function(controller){
-			this.controller = controller;
 		},
 
 		///////////////////////////////////// BEHAVIORS /////////////////////////////////////
@@ -71,6 +67,11 @@ pc.script.create('ufo', function (app) {
 		},
 
 		///////////////////////////////////// CONTROL LISTENERS /////////////////////////////////////
+		// Connect to controller
+		connect: function(controller){
+			this.controller = controller;
+		},
+
 		// Ufo will move toward angle
 		moveToAngle: function (yAngle, dt) {
 			this.moving = true;

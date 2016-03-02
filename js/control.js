@@ -2,6 +2,7 @@ pc.script.create('control', function (app) {
 	// Creates a new Control instance
 	var Control = function (entity) {
 		this.entity		= entity;
+		this.camera		= null;
 		this.receiver	= null;			// Receiver script
 		this.receiverE	= null;			// Receiver entity
 		this.socket		= null;			// Socket connection
@@ -16,12 +17,12 @@ pc.script.create('control', function (app) {
 		this.autoZ		= 0;
 		this.autoTimer	= 0;
 		this.autoTimerMax = getRandNo(1, 3);
-		this.motionVec	= new pc.Vec3(0, 0, 0);
 	};
 
 	Control.prototype = {
 		// Called once before 1st update
 		initialize: function () {
+			this.camera = app.root.findByName("Cam");
 			this.sStatus = "initializing";
 			this.socket = io("http://localhost:8080");
 			this.socket.on("connect_error", this.sError.bind(this));
@@ -31,7 +32,6 @@ pc.script.create('control', function (app) {
 			this.socket.on("pDs", this.sPlayDsc.bind(this));	// Players disconnected
 			this.socket.on("pUp", this.sPlayUpd.bind(this));	// Players update
 			this.changeDirection();
-			// this.receiver	= app.root.findByName("UFO").script.ufo;
 		},
 		
 		// Called every frame
@@ -58,6 +58,9 @@ pc.script.create('control', function (app) {
 			if(this.vectorX !== 0 || this.vectorZ !== 0){
 				this.buttonMove(dt);
 			}else{
+				this.noButtonMove();
+			}
+			/*else{
 				this.autoTimer += dt;
 				if(this.autoTimer > this.autoTimerMax){
 					this.changeDirection();
@@ -80,7 +83,7 @@ pc.script.create('control', function (app) {
 				}else{
 					this.noButtonMove(dt);
 				}
-			}
+			}*/
 
 			// A Button
 			if(app.keyboard.wasPressed(pc.KEY_O)){
@@ -122,11 +125,14 @@ pc.script.create('control', function (app) {
 		// Player moved event
 		receiverMoved: function(){
 			this.socket.emit("pMv", {
-				x: this.receiverE.getPosition().x, 
-				y: this.receiverE.getPosition().y, 
-				z: this.receiverE.getPosition().z,
-				a: this.receiverE.getEulerAngles().y
+				x: Math.round(this.receiverE.getPosition().x * 100) / 100, 
+				y: Math.round(this.receiverE.getPosition().y * 100) / 100, 
+				z: Math.round(this.receiverE.getPosition().z * 100) / 100,
+				a: Math.round(this.receiverE.getEulerAngles().x),
+				b: Math.round(this.receiverE.getEulerAngles().y),
+				c: Math.round(this.receiverE.getEulerAngles().z)
 			});
+			// console.log(this.receiverE.getEulerAngles());
 		},
 
 		//////////////////////////////////// SOCKET EVENT LISTENERS ////////////////////////////////////
@@ -153,6 +159,7 @@ pc.script.create('control', function (app) {
 				this.receiver = this.receiverE.script.bot;
 			}
 			
+			// Add receiver to stage
 			this.receiverE.setPosition(newUser.x, newUser.y, newUser.z);
 			this.receiverE.enabled = true;
 			this.receiver.connect(this);
@@ -163,12 +170,15 @@ pc.script.create('control', function (app) {
 				if(this.id === allUsers[user].id){
 					continue;
 				}else{
-					this.sPlayNew(allUsers[user].id);
+					this.sPlayNew(allUsers[user]);
 				}
 			}
 
 			// Position existing users
 			this.sPlayUpd(allUsers);
+
+			// Connect camera
+			this.camera.script.camera.connect(this.receiverE);
 		},
 
 		// Connection error
@@ -195,11 +205,13 @@ pc.script.create('control', function (app) {
 					this.sPlayDsc(allUsers[user]);
 				}
 			}
+
+			// Disconnect camera
+			this.camera.script.camera.disconnect();
 		},
 
 		// New player entered the arena
 		sPlayNew: function(user){
-			console.log("New player created: " + user.id + " : " + user.t);
 			if(user.t === 0){	// Ufo
 				this.players[user.id] = app.root.findByName("Ufo").clone();
 			}else{	// Bot
@@ -212,7 +224,6 @@ pc.script.create('control', function (app) {
 
 		// Player disconnected
 		sPlayDsc: function(id){
-			console.log("Player disconnected: " + id);
 			this.players[id].destroy();
 			delete this.players[id];
 		},
@@ -222,13 +233,16 @@ pc.script.create('control', function (app) {
 			for(user in allUsers){
 				if(this.id === allUsers[user].id){continue;}
 
-				if(this.players[allUsers[user].id]){
-					this.players[allUsers[user].id].setPosition(
+				if(this.players[user]){
+					this.players[user].setPosition(
 						allUsers[user].x,
 						allUsers[user].y,
 						allUsers[user].z
 					);
-					this.players[allUsers[user].id].setEulerAngles(0, allUsers[user].a, 0);
+					this.players[user].setEulerAngles(allUsers[user].a, allUsers[user].b, allUsers[user].c);
+					if(this.players[user].rigidbody){
+						this.players[allUsers[user].id].rigidbody.syncEntityToBody();
+					}
 				}
 			}
 		}
