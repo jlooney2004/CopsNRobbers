@@ -128,11 +128,8 @@ pc.script.create('control', function (app) {
 				x: Math.round(this.receiverE.getPosition().x * 100) / 100, 
 				y: Math.round(this.receiverE.getPosition().y * 100) / 100, 
 				z: Math.round(this.receiverE.getPosition().z * 100) / 100,
-				a: Math.round(this.receiverE.getEulerAngles().x),
-				b: Math.round(this.receiverE.getEulerAngles().y),
-				c: Math.round(this.receiverE.getEulerAngles().z)
+				a: this.receiver.prevAngle
 			});
-			// console.log(this.receiverE.getEulerAngles());
 		},
 
 		//////////////////////////////////// SOCKET EVENT LISTENERS ////////////////////////////////////
@@ -202,7 +199,7 @@ pc.script.create('control', function (app) {
 				if(this.id === allUsers[user].id){
 					continue;
 				}else{
-					this.sPlayDsc(allUsers[user]);
+					this.sPlayDsc(allUsers[user].id);
 				}
 			}
 
@@ -214,8 +211,15 @@ pc.script.create('control', function (app) {
 		sPlayNew: function(user){
 			if(user.t === 0){	// Ufo
 				this.players[user.id] = app.root.findByName("Ufo").clone();
+				app.systems.script.addComponent(this.players[user.id], {
+					scripts: [{url: "dumufo.js"}]
+				});
 			}else{	// Bot
 				this.players[user.id] = app.root.findByName("Bot").clone();
+				this.players[user.id].rigidbody.type = pc.BODYTYPE_KINEMATIC;
+				app.systems.script.addComponent(this.players[user.id], {
+					scripts: [{url: "dumbot.js"}]
+				});
 			}
 			this.players[user.id].setPosition(user.x, user.y, user.z);
 			this.players[user.id].enabled = true;
@@ -233,16 +237,10 @@ pc.script.create('control', function (app) {
 			for(user in allUsers){
 				if(this.id === allUsers[user].id){continue;}
 
-				if(this.players[user]){
-					this.players[user].setPosition(
-						allUsers[user].x,
-						allUsers[user].y,
-						allUsers[user].z
-					);
-					this.players[user].setEulerAngles(allUsers[user].a, allUsers[user].b, allUsers[user].c);
-					if(this.players[user].rigidbody){
-						this.players[allUsers[user].id].rigidbody.syncEntityToBody();
-					}
+				if(allUsers[user].t === 0){// UFO
+					this.players[user].script.dumufo.updateParams(allUsers[user]);
+				}else{	// Bot
+					this.players[user].script.dumbot.updateParams(allUsers[user]);
 				}
 			}
 		}

@@ -10,7 +10,7 @@ pc.script.create('bot', function (app) {
 		this.velocity	= 0;				// Current velocity
 		this.ACCEL		= 0.002;			// Acceleration
 		this.MAX_VEL	= 0.07;				// Maximum velocity
-		this.faceMaterial	= null;
+		this.faceMaterial = null;
 		this.itemCarry	= null;				// Will contain gadget
 
 		// Status variables
@@ -23,12 +23,12 @@ pc.script.create('bot', function (app) {
 		this.quatTrg 	= new pc.Quat();	// Target angle
 		this.prevAngle	= 0;
 		this.animVars	= {rotateI: 0};
-		this.twRotate	= new TWEEN.Tween(this.animVars);
+		this.twRotate	= new TWEEN.Tween(this.animVars).easing(Ez.Sin.O);
 	};
 
 	Bot.prototype = {
 		// Called once after all resources are loaded and before the first update
-		initialize: function () {
+		initialize: function(){
 			this.quatNow 	= this.entity.getRotation();
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
@@ -39,7 +39,7 @@ pc.script.create('bot', function (app) {
 		},
 		
 		// Called every frame, dt is time in seconds since last update
-		update: function (dt) {
+		update: function(dt){
 			this.newPos = this.entity.getPosition();
 			this.posTimer += dt;
 			if(this.posTimer >= 0.02 && !this.newPos.equals(this.oldPos)){
@@ -56,11 +56,11 @@ pc.script.create('bot', function (app) {
 		},
 
 		// Bot will move toward angle
-		moveToAngle: function (yAngle, dt) {
+		moveToAngle: function(yAngle, dt){
 			if(yAngle !== this.prevAngle){
 				this.animVars.rotateI = 0;
 				this.prevAngle = yAngle;
-				this.twRotate.to({rotateI: 1}, 1000).easing(Ez.Sin.O).start();
+				this.twRotate.to({rotateI: 1}, 1000).start();
 				this.quatTrg.setFromAxisAngle(pc.Vec3.UP, yAngle);
 			}
 
@@ -73,7 +73,7 @@ pc.script.create('bot', function (app) {
 		},
 
 		// Decelerates when no button is pressed
-		decelerate: function (dt) {
+		decelerate: function(dt){
 			if(this.velocity === 0) return false;
 
 			this.velocity -= this.ACCEL;
@@ -123,7 +123,7 @@ pc.script.create('bot', function (app) {
 
 		onTriggerEnter: function(result){
 			switch(result.getName()){
-				case "UFO":
+				case "Ufo":
 					this.enterDanger();
 				break;
 				case "Gadget":
@@ -134,7 +134,7 @@ pc.script.create('bot', function (app) {
 
 		onTriggerLeave: function(result){
 			switch(result.getName()){
-				case "UFO":
+				case "Ufo":
 					this.exitDanger();
 				break;
 				case "Gadget":

@@ -24,7 +24,6 @@ pc.script.create('camera', function (app) {
 			this.vecTarget.z = (this.vecTarget.z + 10) / 1.3;
 			this.vecActual.lerp(this.vecActual, this.vecTarget, dt);
 			this.entity.setPosition(this.vecActual);
-			// this.entity.setPosition(this.focus.getPosition().x / 1.3, 10, (this.focus.getPosition().z + 10) / 1.3);
 			this.entity.lookAt(this.focus.getPosition());
 		},
 

@@ -5,24 +5,28 @@ pc.script.create('ufo', function (app) {
 		this.entity		= entity;
 		this.controller = null;
 
-		// Physics vars
+		// Translation vars
 		this.TIME_MULT	= 1;				// Time multiplier (for slo-mo)
-		this.MAX_SPEED	= 0.08;				// Maximum speed
+		this.MAX_VEL	= 0.08;				// Maximum speed
 		this.ACCEL		= 0.001;			// Acceleration
+		this.velocity	= 0;
+
+		// Rotation vars
 		this.quatNow 	= new pc.Quat();	// Current angle
 		this.quatTrg 	= new pc.Quat();	// Target angle
-		this.rotAlpha	= 0;
 		this.prevAngle	= 0;
-		this.timeDelta	= 0;
-		this.velocity	= 0;
-		this.moving		= false;
+		this.animVars	= {rotateI: 0};
+		this.twRotate	= new TWEEN.Tween(this.animVars);
+		
 		// Communication with other entities
 		this.victim		= null;
+
 		// Status variables
 		this.beamCoolDown	= 0;
         this.oldPos = null;
         this.newPos = null;
         this.posTimer = 0;
+		
 		// Components
 		this.beamParticle = null;
 	};
@@ -74,29 +78,21 @@ pc.script.create('ufo', function (app) {
 
 		// Ufo will move toward angle
 		moveToAngle: function (yAngle, dt) {
-			this.moving = true;
 			if(yAngle !== this.prevAngle){
-				this.rotAlpha = 0;
-				this.timeDelta = 0;
+				this.animVars.rotateI = 0;
 				this.prevAngle = yAngle;
-			}
-
-			// Turn toward angle
-			if(this.rotAlpha < 0.5){
+				this.twRotate.to({rotateI: 1}, 1000).easing(Ez.Sin.O).start();
 				this.quatTrg.setFromAxisAngle(pc.Vec3.UP, yAngle);
-
-				this.timeDelta += (dt * this.TIME_MULT);
-				this.rotAlpha = 1 - Math.pow((1 - this.timeDelta), 3);
-				this.entity.setRotation(this.quatNow.slerp(this.quatNow, this.quatTrg, this.rotAlpha));
 			}
+
+			this.entity.setRotation(this.quatNow.slerp(this.quatNow, this.quatTrg, this.animVars.rotateI));
 
 			this.velocity += this.ACCEL;
-			this.velocity = Math.min(this.velocity, this.MAX_SPEED);
+			this.velocity = Math.min(this.velocity, this.MAX_VEL);
 			this.entity.translateLocal(0, 0, this.velocity);
 		},
 
 		decelerate: function (dt) {
-			this.moving = false;
 			if(this.velocity === 0) return false;
 
 			this.velocity -= this.ACCEL * 2;

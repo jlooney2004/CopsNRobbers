@@ -30,8 +30,6 @@ io.on("connection", function(socket){
 		users[userID].y = posObject.y;
 		users[userID].z = posObject.z;
 		users[userID].a = posObject.a;
-		users[userID].b = posObject.b;
-		users[userID].c = posObject.c;
 	});
 
 	// Player beam
