@@ -128,6 +128,7 @@ pc.script.create('bot', function (app) {
 				break;
 				case "Gadget":
 					this.itemCarry = result.script.gadget;
+					this.controller.gIPicked(result.getPosition());
 				break;
 			}
 		},

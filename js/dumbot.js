@@ -55,20 +55,12 @@ pc.script.create('dumbot', function (app) {
 
 		abduct: function(){
 			// Drop item being carried
-			/*
-			if(this.itemCarry !== null){
-				this.itemCarry.dropped();
-				this.itemCarry = null;
-			}*/
 		},
 
 		onTriggerEnter: function(result){
 			switch(result.getName()){
 				case "Ufo":
 					this.enterDanger();
-				break;
-				case "Gadget":
-					this.itemCarry = result.script.gadget;
 				break;
 			}
 		},
@@ -77,9 +69,6 @@ pc.script.create('dumbot', function (app) {
 			switch(result.getName()){
 				case "Ufo":
 					this.exitDanger();
-				break;
-				case "Gadget":
-					this.itemCarry = null;
 				break;
 			}
 		}

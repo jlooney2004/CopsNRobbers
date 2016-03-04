@@ -7,19 +7,21 @@ pc.script.create('gadget', function (app) {
 		this.twHover	= new TWEEN.Tween(this.animVars);
 		this.twRotate	= new TWEEN.Tween(this.animVars);
 		// Status
-		this.captured 	= false;	// Captured or not
+		this.captured	= false;	// Captured or not
 		this.holder		= null;		// Entity holding this gadget
 
-		this.posStart	= new pc.Vec3(-26, 1.5, 0);
+		this.posStart	= new pc.Vec3();
+		this.posTarget	= new pc.Vec3();
 		this.posOnBot	= new pc.Vec3(0, 0.3, 0.3);
 		this.posOnUfo	= new pc.Vec3(0, 0, 0);
-		this.posTarget	= this.posStart;
 	};
 
 	Gadget.prototype = {
 		// Called once after all resources are loaded and before the first update
 		initialize: function () {
 			this.startHoverAnim();
+			this.posStart = this.entity.getPosition();
+			this.posTarget = this.posStart;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
 		},
@@ -37,6 +39,7 @@ pc.script.create('gadget', function (app) {
 		},
 
 		pickedUp: function(newHolder){
+			console.log("Picked up by " + newHolder);
 			this.captured = true;
 			this.holder = newHolder;
 			this.animVars.yPos = this.entity.getPosition().y - this.holder.getPosition().y;
@@ -53,17 +56,18 @@ pc.script.create('gadget', function (app) {
 			this.startHoverAnim();
 			this.holder = null;
 			this.captured = false;
-			console.log(this.entity.getPosition().toString());
 		},
+
 		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
 		onTriggerEnter: function(result){
-			if (result.collision) { result.collision.fire("triggerenter", this.entity); }
 			if(this.captured) return false;
+			if(result.collision){result.collision.fire("triggerenter", this.entity);}
 
 			switch(result.getName()){
 				case "Bot":
-					this.holder = result.script.bot;
-					this.pickedUp(result);
+					if(result.script.bot){
+						this.pickedUp(result);
+					}
 				break;
 				case "UFO":
 				break;
@@ -71,7 +75,7 @@ pc.script.create('gadget', function (app) {
 		},
 
 		onTriggerLeave: function(result){
-			if (result.collision) { result.collision.fire("triggerleave", this.entity); }
+			if(result.collision){result.collision.fire("triggerleave", this.entity);}
 
 			switch(result.getName()){
 				case "Bot":

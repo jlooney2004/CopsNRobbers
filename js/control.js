@@ -31,6 +31,8 @@ pc.script.create('control', function (app) {
 			this.socket.on("pNw", this.sPlayNew.bind(this));	// Players new
 			this.socket.on("pDs", this.sPlayDsc.bind(this));	// Players disconnected
 			this.socket.on("pUp", this.sPlayUpd.bind(this));	// Players update
+			this.socket.on("gOp", this.gOPicked.bind(this));	// Gadget other picked
+			this.socket.on("gOd", this.gODropped.bind(this));	// Gadget other dropped
 			this.changeDirection();
 		},
 		
@@ -132,9 +134,39 @@ pc.script.create('control', function (app) {
 			});
 		},
 
+		gIPicked: function(gPos){
+			this.socket.emit("gIp", {
+				i: this.id,
+				x: Math.round(gPos.x * 100) / 100, 
+				y: Math.round(gPos.y * 100) / 100, 
+				z: Math.round(gPos.z * 100) / 100,
+			});
+		},
+
+		gIDropped: function(){
+			var gPos = app.root.findByName("Gadget").getPosition();
+			this.socket.emit("gId", {
+				i: this.id,
+				x: Math.round(gPos.x * 100) / 100, 
+				y: Math.round(gPos.y * 100) / 100, 
+				z: Math.round(gPos.z * 100) / 100,
+			});
+		},
+
+		gOPicked: function(holderID){
+			if(holderID){
+				console.log("Other picked by " + holderID);
+				app.root.findByName("Gadget").script.gadget.pickedUp(this.players[holderID]);
+			}
+		},
+
+		gODropped: function(gPos){
+			app.root.findByName("Gadget").script.gadget.dropped();
+		},
+
 		//////////////////////////////////// SOCKET EVENT LISTENERS ////////////////////////////////////
 		// Connected socket
-		sConnected: function(newUser, allUsers){
+		sConnected: function(newUser, allUsers, gInfo){
 			this.id = newUser.id;
 			this.type = newUser.t;
 			this.sStatus = "connected";
@@ -176,6 +208,22 @@ pc.script.create('control', function (app) {
 
 			// Connect camera
 			this.camera.script.camera.connect(this.receiverE);
+
+			// Create gadget
+			var g = app.root.findByName("Gadget");
+			console.log(gInfo);
+			if(gInfo.i === -1){
+				g.setPosition(gInfo.x, gInfo.y, gInfo.z);
+				app.systems.script.addComponent(g, {
+					scripts: [{url: "gadget.js"}]
+				});
+			}else{
+				app.systems.script.addComponent(g, {
+					scripts: [{url: "gadget.js"}]
+				});
+				g.script.gadget.pickedUp(allUsers[gInfo.i]);
+			}
+			g.enabled = true;
 		},
 
 		// Connection error
@@ -187,6 +235,12 @@ pc.script.create('control', function (app) {
 
 		// Disconnected
 		sDisc: function(){
+			// Drop gadget
+			if(this.receiver.itemCarry){
+				app.root.findByName("Gadget").script.gadget.dropped();
+			}
+
+			// Destroy receiver
 			console.log("Disconnected");
 			this.receiverE.destroy();
 			this.receiver = null;
@@ -227,9 +281,15 @@ pc.script.create('control', function (app) {
 		},
 
 		// Player disconnected
-		sPlayDsc: function(id){
-			this.players[id].destroy();
-			delete this.players[id];
+		sPlayDsc: function(discInfo){
+			if(typeof discInfo === "object"){
+				this.gODropped(discInfo);
+				this.players[discInfo.i].destroy();
+				delete this.players[discInfo.i];
+			}else{
+				this.players[discInfo].destroy();
+				delete this.players[discInfo];
+			}
 		},
 
 		// Player update

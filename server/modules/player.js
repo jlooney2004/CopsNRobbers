@@ -7,7 +7,7 @@ function Player(id, type){
 		this.y = 1.5;
 		this.z = (Math.random() < 0.5) ? -11 : 11;
 	}else{ // Bot
-		this.x = getRandInt(24, 28);
+		this.x = getRandInt(25, 28);
 		this.y = 1.8;
 		this.z = getRandInt(-5, 5);
 	}

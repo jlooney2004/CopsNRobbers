@@ -17,7 +17,7 @@ pc.script.create('dumufo', function (app) {
 	};
 
 	Dumufo.prototype = {
-		initialize: function () {
+		initialize: function(){
 			this.quatNow 	= this.entity.getRotation();
 			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
