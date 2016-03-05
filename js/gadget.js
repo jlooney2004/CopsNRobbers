@@ -31,6 +31,7 @@ pc.script.create('gadget', function (app) {
 			// console.log(this.twHover.isPlaying);
 			this.entity.setLocalPosition(this.posTarget.x, this.animVars.yPos, this.posTarget.z);
 			this.entity.setLocalEulerAngles(0, this.animVars.yAngle, 0);
+			// console.log("pos: " + this.posTarget.toString());
 		},
 
 		startHoverAnim: function(){
@@ -39,22 +40,38 @@ pc.script.create('gadget', function (app) {
 		},
 
 		pickedUp: function(newHolder){
-			console.log("Picked up by " + newHolder);
+			if(this.captured)return false;
+
 			this.captured = true;
 			this.holder = newHolder;
+			console.log("Picked up by");
+			console.log(this.holder);
 			this.animVars.yPos = this.entity.getPosition().y - this.holder.getPosition().y;
 			this.entity.reparent(this.holder);
-			this.posTarget = this.posOnBot;
+			this.posTarget = this.posOnBot.clone();
+			console.log("Setting Pos Target to: " + this.posTarget.toString());
 			this.twHover.to({yPos: -0.3}, 250).easing(Ez.Pow2.O).repeat(0).start();
 			this.twRotate.to({yAngle: 0}, 250).repeat(0).easing(Ez.Pow2.O).start();
 		},
 
-		dropped: function(){
+		dropped: function(gPos){
+			if(this.captured === false) return false;
+
+			if(gPos == undefined){
+				this.posTarget = this.holder.getPosition().clone();
+			}else{
+				this.posTarget.x = gPos.x;
+				this.posTarget.y = gPos.y;
+				this.posTarget.z = gPos.z;
+			}
 			this.entity.reparent(app.root.findByName("Root"));
-			this.posTarget = this.holder.getPosition().clone();
 			this.animVars.yPos = this.posTarget.y;
 			this.startHoverAnim();
 			this.holder = null;
+			setTimeout(function(){this.decaptured();}.bind(this), 1000);
+		},
+
+		decaptured: function(){
 			this.captured = false;
 		},
 
@@ -65,9 +82,6 @@ pc.script.create('gadget', function (app) {
 
 			switch(result.getName()){
 				case "Bot":
-					if(result.script.bot){
-						this.pickedUp(result);
-					}
 				break;
 				case "UFO":
 				break;

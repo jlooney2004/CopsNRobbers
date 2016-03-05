@@ -1,6 +1,7 @@
 function Player(id, type){
 	this.id = id;	// Short ID #
 	this.t = type;	// 0: UFO, 1: Bot
+	this.h = -1;	// Id of holder
 
 	if(type === 0){	// Ufo
 		this.x = getRandInt(-9, 0);

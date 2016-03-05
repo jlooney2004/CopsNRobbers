@@ -3,12 +3,16 @@ pc.script.create('control', function (app) {
 	var Control = function (entity) {
 		this.entity		= entity;
 		this.camera		= null;
+		this.gadget		= null;
 		this.receiver	= null;			// Receiver script
 		this.receiverE	= null;			// Receiver entity
 		this.socket		= null;			// Socket connection
 		this.sStatus	= "pre-init";	// Socket status
 		this.id			= null;			// Unique id
-		this.players	= {};			// All other players
+		this.dummies	= {};			// Entities of other bots/ufos
+		this.holderID	= -1;			// ID of holder
+		this.prelimID	= -1;			// ID before server approval
+		this.tempUsr	= null;			// For iteration
 
 		this.vectorX	= 0;
 		this.vectorZ	= 0;
@@ -23,19 +27,18 @@ pc.script.create('control', function (app) {
 		// Called once before 1st update
 		initialize: function () {
 			this.camera = app.root.findByName("Cam");
+			this.gadget = app.root.findByName("Gadget");
 			this.sStatus = "initializing";
 			this.socket = io("http://localhost:8080");
 			this.socket.on("connect_error", this.sError.bind(this));
 			this.socket.on("disconnect", this.sDisc.bind(this));
 			this.socket.on("pCn", this.sConnected.bind(this));	// Connected
-			this.socket.on("pNw", this.sPlayNew.bind(this));	// Players new
-			this.socket.on("pDs", this.sPlayDsc.bind(this));	// Players disconnected
+			this.socket.on("pNw", this.playerCreate.bind(this));	// Players new
 			this.socket.on("pUp", this.sPlayUpd.bind(this));	// Players update
-			this.socket.on("gOp", this.gOPicked.bind(this));	// Gadget other picked
-			this.socket.on("gOd", this.gODropped.bind(this));	// Gadget other dropped
 			this.changeDirection();
 		},
 		
+		//////////////////////////////////// KEYBOARD CONTROLS ////////////////////////////////////
 		// Called every frame
 		update: function (dt) {
 			TWEEN.update();
@@ -90,6 +93,7 @@ pc.script.create('control', function (app) {
 			// A Button
 			if(app.keyboard.wasPressed(pc.KEY_O)){
 				this.receiver.btnA();
+				this.gadgetIDropped();
 			}
 
 			// B Button
@@ -98,7 +102,7 @@ pc.script.create('control', function (app) {
 			}
 
 			// Reset
-			if(app.keyboard.wasPressed(pc.KEY_R)){
+			if(app.keyboard.wasPressed(pc.KEY_T)){
 				this.receiver.reset();
 			}
 		},
@@ -130,38 +134,18 @@ pc.script.create('control', function (app) {
 				x: Math.round(this.receiverE.getPosition().x * 100) / 100, 
 				y: Math.round(this.receiverE.getPosition().y * 100) / 100, 
 				z: Math.round(this.receiverE.getPosition().z * 100) / 100,
-				a: this.receiver.prevAngle
+				a: this.receiver.prevAngle,
+				h: this.prelimID
 			});
 		},
 
-		gIPicked: function(gPos){
-			this.socket.emit("gIp", {
-				i: this.id,
-				x: Math.round(gPos.x * 100) / 100, 
-				y: Math.round(gPos.y * 100) / 100, 
-				z: Math.round(gPos.z * 100) / 100,
-			});
+		gadgetIPicked: function(){
+			this.prelimID = this.id;
 		},
 
-		gIDropped: function(){
-			var gPos = app.root.findByName("Gadget").getPosition();
-			this.socket.emit("gId", {
-				i: this.id,
-				x: Math.round(gPos.x * 100) / 100, 
-				y: Math.round(gPos.y * 100) / 100, 
-				z: Math.round(gPos.z * 100) / 100,
-			});
-		},
-
-		gOPicked: function(holderID){
-			if(holderID){
-				console.log("Other picked by " + holderID);
-				app.root.findByName("Gadget").script.gadget.pickedUp(this.players[holderID]);
-			}
-		},
-
-		gODropped: function(gPos){
-			app.root.findByName("Gadget").script.gadget.dropped();
+		gadgetIDropped: function(){
+			this.prelimID = -1;
+			console.log("Attempting drop from " + this.holderID + " : " + this.id);
 		},
 
 		//////////////////////////////////// SOCKET EVENT LISTENERS ////////////////////////////////////
@@ -199,7 +183,7 @@ pc.script.create('control', function (app) {
 				if(this.id === allUsers[user].id){
 					continue;
 				}else{
-					this.sPlayNew(allUsers[user]);
+					this.playerCreate(allUsers[user]);
 				}
 			}
 
@@ -210,34 +194,27 @@ pc.script.create('control', function (app) {
 			this.camera.script.camera.connect(this.receiverE);
 
 			// Create gadget
-			var g = app.root.findByName("Gadget");
+			console.log("Creating gadget");
 			console.log(gInfo);
-			if(gInfo.i === -1){
-				g.setPosition(gInfo.x, gInfo.y, gInfo.z);
-				app.systems.script.addComponent(g, {
+			this.gadget.enabled = true;
+			if(gInfo.id === -1){
+				this.gadget.setPosition(gInfo.x, gInfo.y, gInfo.z);
+				app.systems.script.addComponent(this.gadget, {
 					scripts: [{url: "gadget.js"}]
 				});
 			}else{
-				app.systems.script.addComponent(g, {
+				app.systems.script.addComponent(this.gadget, {
 					scripts: [{url: "gadget.js"}]
 				});
-				g.script.gadget.pickedUp(allUsers[gInfo.i]);
+				this.gadget.script.gadget.pickedUp(this.dummies[gInfo.id]);
 			}
-			g.enabled = true;
-		},
-
-		// Connection error
-		sError: function(object){
-			console.log("Connection error");
-			this.sStatus = "disconnected";
-			this.id = null;
 		},
 
 		// Disconnected
 		sDisc: function(){
 			// Drop gadget
 			if(this.receiver.itemCarry){
-				app.root.findByName("Gadget").script.gadget.dropped();
+				this.gadget.script.gadget.dropped();
 			}
 
 			// Destroy receiver
@@ -249,11 +226,11 @@ pc.script.create('control', function (app) {
 			this.id = null;
 
 			// Delete all users
-			for(user in allUsers){
-				if(this.id === allUsers[user].id){
+			for(user in this.dummies){
+				if(this.id === user){
 					continue;
 				}else{
-					this.sPlayDsc(allUsers[user].id);
+					this.playerDestroy(user);
 				}
 			}
 
@@ -261,46 +238,97 @@ pc.script.create('control', function (app) {
 			this.camera.script.camera.disconnect();
 		},
 
-		// New player entered the arena
-		sPlayNew: function(user){
-			if(user.t === 0){	// Ufo
-				this.players[user.id] = app.root.findByName("Ufo").clone();
-				app.systems.script.addComponent(this.players[user.id], {
-					scripts: [{url: "dumufo.js"}]
-				});
-			}else{	// Bot
-				this.players[user.id] = app.root.findByName("Bot").clone();
-				this.players[user.id].rigidbody.type = pc.BODYTYPE_KINEMATIC;
-				app.systems.script.addComponent(this.players[user.id], {
-					scripts: [{url: "dumbot.js"}]
-				});
-			}
-			this.players[user.id].setPosition(user.x, user.y, user.z);
-			this.players[user.id].enabled = true;
-			app.root.addChild(this.players[user.id]);
-		},
-
-		// Player disconnected
-		sPlayDsc: function(discInfo){
-			if(typeof discInfo === "object"){
-				this.gODropped(discInfo);
-				this.players[discInfo.i].destroy();
-				delete this.players[discInfo.i];
-			}else{
-				this.players[discInfo].destroy();
-				delete this.players[discInfo];
-			}
-		},
-
 		// Player update
 		sPlayUpd: function(allUsers){
+			if(!this.gadget.script.gadget){return false};
+			// Positions
 			for(user in allUsers){
 				if(this.id === allUsers[user].id){continue;}
 
 				if(allUsers[user].t === 0){// UFO
-					this.players[user].script.dumufo.updateParams(allUsers[user]);
+					this.dummies[user].script.dumufo.updateParams(allUsers[user]);
 				}else{	// Bot
-					this.players[user].script.dumbot.updateParams(allUsers[user]);
+					this.dummies[user].script.dumbot.updateParams(allUsers[user]);
+				}
+			}
+
+			this.tempUsr = allUsers[Object.keys(allUsers)[0]].h;
+			// New pickup
+			if(this.tempUsr !== -1 && this.holderID === -1){
+				this.holderID = this.tempUsr;
+				this.prelimID = this.tempUsr;
+				if(this.holderID !== this.id){
+					this.gadget.script.gadget.pickedUp(this.dummies[this.tempUsr]);
+				}else{
+					this.gadget.script.gadget.pickedUp(this.receiverE);
+				}
+			}
+
+			// New dropped
+			else if(this.tempUsr === -1 && this.holderID !== -1){
+				this.gadget.script.gadget.dropped(allUsers[this.tempUsr]);
+				this.holderID = -1;
+				this.prelimID = -1;
+			}
+
+			// Check connects/disconnects
+			if(Object.keys(allUsers).length !== Object.keys(this.dummies).length + 1){
+				this.playerReconcile(allUsers);
+			}
+		},
+
+		// Connection error
+		sError: function(object){
+			console.log("Connection error");
+			this.sStatus = "disconnected";
+			this.id = null;
+		},
+
+		//////////////////////////////////// PLAYER CREATION ////////////////////////////////////
+		// New player connected
+		playerCreate: function(user){
+			if(user.t === 0){	// Ufo
+				this.dummies[user.id] = app.root.findByName("Ufo").clone();
+				app.systems.script.addComponent(this.dummies[user.id], {
+					scripts: [{url: "dumufo.js"}]
+				});
+			}else{	// Bot
+				this.dummies[user.id] = app.root.findByName("Bot").clone();
+				this.dummies[user.id].rigidbody.type = pc.BODYTYPE_KINEMATIC;
+				app.systems.script.addComponent(this.dummies[user.id], {
+					scripts: [{url: "dumbot.js"}]
+				});
+			}
+			this.dummies[user.id].setPosition(user.x, user.y, user.z);
+			this.dummies[user.id].enabled = true;
+			app.root.addChild(this.dummies[user.id]);
+		},
+
+		// Player disconnected
+		playerDestroy: function(discID){
+			console.log("Destroying " + discID);
+			this.dummies[discID].destroy();
+			delete this.dummies[discID];
+		},
+
+		// Match players to server data
+		playerReconcile: function(allUsers){
+			// Connect new 
+			if(Object.keys(allUsers).length > Object.keys(this.dummies).length + 1){
+				console.log("Connecting...");
+				for(var i = 0; i < Object.keys(allUsers).length; i++){
+					if(!this.dummies[Object.keys(allUsers)[i]] && Object.keys(allUsers)[i] !== this.id){
+						// Connect!
+					}
+				}
+			}
+			// Disconnect
+			else{
+				console.log("Disconnecting...");
+				for(var i = 0; i < Object.keys(this.dummies).length; i++){
+					if(!allUsers[Object.keys(this.dummies)[i]] && Object.keys(this.dummies)[i] !== this.id){
+						this.playerDestroy(Object.keys(this.dummies)[i]);
+					}
 				}
 			}
 		}
@@ -308,3 +336,8 @@ pc.script.create('control', function (app) {
 
 	return Control;
 });
+
+var blabla = {
+	1: {a: 1, b: 2},
+	2: {c: 3, d: 4}
+}
