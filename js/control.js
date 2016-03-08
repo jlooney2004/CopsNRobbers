@@ -9,9 +9,12 @@ pc.script.create('control', function (app) {
 		this.socket		= null;			// Socket connection
 		this.sStatus	= "pre-init";	// Socket status
 		this.id			= null;			// Unique id
+		this.type		= -1;			// Type of player
 		this.dummies	= {};			// Entities of other bots/ufos
 		this.holderID	= -1;			// ID of holder
-		this.prelimID	= -1;			// ID before server approval
+		this.victimID	= -1;			// ID of victim
+		this.testIDH	= -1;			// Test ID of holder
+		this.testIDV	= -1;			// Test ID of victim
 		this.tempUsr	= null;			// For iteration
 
 		this.vectorX	= 0;
@@ -32,15 +35,15 @@ pc.script.create('control', function (app) {
 			this.socket = io("http://localhost:8080");
 			this.socket.on("connect_error", this.sError.bind(this));
 			this.socket.on("disconnect", this.sDisc.bind(this));
-			this.socket.on("pCn", this.sConnected.bind(this));	// Connected
+			this.socket.on("pCn", this.sConnected.bind(this));		// Connected
 			this.socket.on("pNw", this.playerCreate.bind(this));	// Players new
-			this.socket.on("pUp", this.sPlayUpd.bind(this));	// Players update
+			this.socket.on("pUp", this.sUpdateStatus.bind(this));		// Players update
 			this.changeDirection();
 		},
 		
 		//////////////////////////////////// KEYBOARD CONTROLS ////////////////////////////////////
 		// Called every frame
-		update: function (dt) {
+		update: function(dt){
 			TWEEN.update();
 			if(this.sStatus !== "connected"){return false;}
 			if(this.receiver == null){return false;}
@@ -93,7 +96,9 @@ pc.script.create('control', function (app) {
 			// A Button
 			if(app.keyboard.wasPressed(pc.KEY_O)){
 				this.receiver.btnA();
-				this.gadgetIDropped();
+				if(this.id === 0){
+					this.gadgetIDropped();
+				}
 			}
 
 			// B Button
@@ -107,13 +112,13 @@ pc.script.create('control', function (app) {
 			}
 		},
 
-		buttonMove: function (dt){
+		buttonMove: function(dt){
 			// Calculate y Angle from x & z vectors
 			this.yAngle = Math.atan2(this.vectorX, this.vectorZ) * (180 / Math.PI);
 			this.receiver.moveToAngle(this.yAngle, dt);
 		},
 
-		noButtonMove: function (dt){
+		noButtonMove: function(dt){
 			this.receiver.decelerate(dt);
 		},
 
@@ -135,16 +140,33 @@ pc.script.create('control', function (app) {
 				y: Math.round(this.receiverE.getPosition().y * 100) / 100, 
 				z: Math.round(this.receiverE.getPosition().z * 100) / 100,
 				a: this.receiver.prevAngle,
-				h: this.prelimID
+				h: this.testIDH,
+				v: this.testIDV
 			});
 		},
 
+		receiverBeam: function(victim){
+			if(this.receiver.beamCoolDown > 0)return false;
+
+			if(typeof(victim) === 'undefined'){
+				this.testIDV = -2;
+			}else{
+				for(dummy in this.dummies){
+					if(this.dummies[dummy] == victim){
+						console.log("Loop dummy found: " + dummy);
+						this.testIDV = dummy;
+						break;
+					}
+				}
+			}
+		},
+
 		gadgetIPicked: function(){
-			this.prelimID = this.id;
+			this.testIDH = this.id;
 		},
 
 		gadgetIDropped: function(){
-			this.prelimID = -1;
+			this.testIDH = -1;
 			console.log("Attempting drop from " + this.holderID + " : " + this.id);
 		},
 
@@ -188,7 +210,7 @@ pc.script.create('control', function (app) {
 			}
 
 			// Position existing users
-			this.sPlayUpd(allUsers);
+			this.sUpdateStatus(allUsers);
 
 			// Connect camera
 			this.camera.script.camera.connect(this.receiverE);
@@ -238,13 +260,24 @@ pc.script.create('control', function (app) {
 			this.camera.script.camera.disconnect();
 		},
 
-		// Player update
-		sPlayUpd: function(allUsers){
+		// Update game status
+		sUpdateStatus: function(allUsers){
 			if(!this.gadget.script.gadget){return false};
+
 			// Positions
 			for(user in allUsers){
-				if(this.id === allUsers[user].id){continue;}
-
+				if(this.id === allUsers[user].id){
+					if(allUsers[user].v == this.id && this.victimID === -1){
+						this.victimID = this.id;
+						this.receiver.abduct(allUsers[user]);
+					}else{
+						this.victimID = allUsers[user].v;
+					}
+					// Reset test IDV when we know server has read it
+					if(this.testIDV === allUsers[user].v){this.testIDV = -1;}
+					continue;
+				}
+				
 				if(allUsers[user].t === 0){// UFO
 					this.dummies[user].script.dumufo.updateParams(allUsers[user]);
 				}else{	// Bot
@@ -256,7 +289,7 @@ pc.script.create('control', function (app) {
 			// New pickup
 			if(this.tempUsr !== -1 && this.holderID === -1){
 				this.holderID = this.tempUsr;
-				this.prelimID = this.tempUsr;
+				this.testIDH = this.tempUsr;
 				if(this.holderID !== this.id){
 					this.gadget.script.gadget.pickedUp(this.dummies[this.tempUsr]);
 				}else{
@@ -268,7 +301,7 @@ pc.script.create('control', function (app) {
 			else if(this.tempUsr === -1 && this.holderID !== -1){
 				this.gadget.script.gadget.dropped(allUsers[this.tempUsr]);
 				this.holderID = -1;
-				this.prelimID = -1;
+				this.testIDH = -1;
 			}
 
 			// Check connects/disconnects
@@ -307,7 +340,9 @@ pc.script.create('control', function (app) {
 		// Player disconnected
 		playerDestroy: function(discID){
 			console.log("Destroying " + discID);
-			this.dummies[discID].destroy();
+			if(this.dummies[discID].script.dumbot){
+				this.dummies[discID].script.dumbot.kill();
+			}
 			delete this.dummies[discID];
 		},
 
@@ -315,7 +350,7 @@ pc.script.create('control', function (app) {
 		playerReconcile: function(allUsers){
 			// Connect new 
 			if(Object.keys(allUsers).length > Object.keys(this.dummies).length + 1){
-				console.log("Connecting...");
+				console.log("Creating player...");
 				for(var i = 0; i < Object.keys(allUsers).length; i++){
 					if(!this.dummies[Object.keys(allUsers)[i]] && Object.keys(allUsers)[i] !== this.id){
 						// Connect!
@@ -323,8 +358,8 @@ pc.script.create('control', function (app) {
 				}
 			}
 			// Disconnect
-			else{
-				console.log("Disconnecting...");
+			else if(Object.keys(allUsers).length < Object.keys(this.dummies).length + 1){
+				console.log("Destroying player...");
 				for(var i = 0; i < Object.keys(this.dummies).length; i++){
 					if(!allUsers[Object.keys(this.dummies)[i]] && Object.keys(this.dummies)[i] !== this.id){
 						this.playerDestroy(Object.keys(this.dummies)[i]);

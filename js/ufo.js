@@ -23,8 +23,6 @@ pc.script.create('ufo', function (app) {
 
 		// Status variables
 		this.beamCoolDown	= 0;
-        this.oldPos = null;
-        this.newPos = null;
         this.posTimer = 0;
 		
 		// Components
@@ -38,9 +36,6 @@ pc.script.create('ufo', function (app) {
 			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
-			
-            this.newPos = this.entity.getPosition();
-            this.oldPos = new pc.Vec3();
 		},
 		
 		// Called every frame, dt is time in seconds since last update
@@ -49,10 +44,8 @@ pc.script.create('ufo', function (app) {
 				this.beamCoolDown -= dt;
 			}
 
-            this.newPos = this.entity.getPosition();
             this.posTimer += dt;
-            if(this.posTimer >= 0.02 && !this.newPos.equals(this.oldPos)){
-                this.oldPos = this.newPos.clone();
+            if(this.posTimer >= 0.02){
                 this.controller.receiverMoved();
                 this.posTimer = 0;
             }
@@ -63,8 +56,11 @@ pc.script.create('ufo', function (app) {
 			if(this.beamCoolDown > 0) return false;
 
 			if(this.victim !== null){
-				this.victim.abduct();
+				this.controller.receiverBeam(this.victim);
+			}else{
+				this.controller.receiverBeam();
 			}
+
 			this.beamParticle.reset();
 			this.beamParticle.play();
 			this.beamCoolDown = 2;
@@ -120,7 +116,7 @@ pc.script.create('ufo', function (app) {
 			if (result.collision) {result.collision.fire("triggerenter", this.entity);}
 			switch(result.getName()){
 				case "Bot":
-					this.victim = result.script.bot;
+					this.victim = result;
 				break;
 			}
 		},

@@ -10,6 +10,8 @@ pc.script.create('prison', function (app) {
 		// Tweens
 		this.twVars = {doorY: 1.6};
 		this.twDoor = new TWEEN.Tween(this.twVars);
+
+		this.bCount = 0;
 	};
 
 	Prison.prototype = {
@@ -44,6 +46,9 @@ pc.script.create('prison', function (app) {
 		onTriggerEnter: function(result){
 			if(result.collision) {result.collision.fire("triggerenter", this.entity);}
 			if(result.getName() === "Bot"){
+				this.bCount ++;
+			}
+			if(this.bCount > 0){
 				this.twDoor.to({doorY: 1.01}, 500).easing(Ez.Sin.IO).start();
 			}
 		},
@@ -51,6 +56,10 @@ pc.script.create('prison', function (app) {
 		onTriggerLeave: function(result){
 			if(result.collision) {result.collision.fire("triggerleave", this.entity);}
 			if(result.getName() === "Bot"){
+				this.bCount --;
+			}
+
+			if(this.bCount === 0){
 				this.twDoor.to({doorY: 1.6}, 500).easing(Ez.Sin.IO).start();
 			}
 		}

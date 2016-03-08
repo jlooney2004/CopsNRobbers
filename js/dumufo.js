@@ -14,6 +14,7 @@ pc.script.create('dumufo', function (app) {
 		this.quatNow 	= new pc.Quat();	// Current angle
 		this.quatTrg 	= new pc.Quat();	// Target angle
 		this.prevAngle	= 0;
+		this.beamStat 	= -1;
 	};
 
 	Dumufo.prototype = {
@@ -31,17 +32,28 @@ pc.script.create('dumufo', function (app) {
 
 		///////////////////////////////////// CONTROL LISTENERS /////////////////////////////////////
 		updateParams: function(userParams){
+			// Move
 			this.twTransl.to({
 				x: userParams.x,
 				y: userParams.y,
 				z: userParams.z
 			}, 20).start();
 
+			// Rotate
 			if(userParams.a !== this.prevAngle){
 				this.animVars.i = 0;
 				this.prevAngle = userParams.a;
 				this.twRotate.to({i: 1}, 1000).start();
 				this.quatTrg.setFromAxisAngle(pc.Vec3.UP, userParams.a);
+			}
+
+			// Fire beam
+			if(userParams.v !== -1 && this.beamStat === -1){
+				this.beamStat = userParams.v;
+				this.fireBeam();
+			}// Reset beam
+			else if(userParams.v == -1){
+				this.beamStat = -1;
 			}
 		},
 

@@ -1,7 +1,9 @@
 function Player(id, type){
 	this.id = id;	// Short ID #
 	this.t = type;	// 0: UFO, 1: Bot
-	this.h = -1;	// Id of holder
+	this.h = -1;	// ID of Holder
+	this.a = 0;		// Y Angle
+	this.v = -1;	// ID of Victim 
 
 	if(type === 0){	// Ufo
 		this.x = getRandInt(-9, 0);
@@ -12,7 +14,6 @@ function Player(id, type){
 		this.y = 1.8;
 		this.z = getRandInt(-5, 5);
 	}
-	this.a = 0;
 }
 
 Player.prototype = {

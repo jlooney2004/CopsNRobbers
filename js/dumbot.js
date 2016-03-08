@@ -42,6 +42,20 @@ pc.script.create('dumbot', function (app) {
 			}
 		},
 
+		kill: function(){
+			this.twTransl.to({
+				y: 20,
+			}, 2000).easing(Ez.Pow2.I).start();
+
+			this.animVars.i = 0;
+			this.prevAngle += 180;
+			this.twRotate.to({i: 1}, 1000).easing(Ez.Sin.I).start();
+			this.quatTrg.setFromAxisAngle(pc.Vec3.UP, this.prevAngle);
+			setTimeout(function(){
+				this.entity.destroy();
+			}.bind(this), 2000);
+		},
+
 		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
 		enterDanger: function(){
 			this.faceMaterial.emissive = new pc.Vec3(1, 0, 0);

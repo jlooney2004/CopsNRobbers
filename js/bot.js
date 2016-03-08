@@ -11,7 +11,6 @@ pc.script.create('bot', function (app) {
 		this.ACCEL		= 0.002;			// Acceleration
 		this.MAX_VEL	= 0.07;				// Maximum velocity
 		this.faceMaterial = null;
-		this.itemCarry	= null;				// Will contain gadget
 
 		// Status variables
 		this.oldPos = null;
@@ -113,12 +112,8 @@ pc.script.create('bot', function (app) {
 		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
 		// When being abducted
 		abduct: function(){
-			// Drop item being carried
-			if(this.itemCarry !== null){
-				this.itemCarry.dropped();
-				this.itemCarry = null;
-			}
-			this.reset();
+			this.entity.setPosition((Math.random() < 0.5) ? -1 : 1, 1.8, (Math.random() < 0.5) ? -1 : 1);
+			this.entity.rigidbody.syncEntityToBody();
 		},
 
 		onTriggerEnter: function(result){
@@ -127,7 +122,6 @@ pc.script.create('bot', function (app) {
 					this.enterDanger();
 				break;
 				case "Gadget":
-					this.itemCarry = result.script.gadget;
 					this.controller.gadgetIPicked();
 				break;
 			}
@@ -139,7 +133,6 @@ pc.script.create('bot', function (app) {
 					this.exitDanger();
 				break;
 				case "Gadget":
-					this.itemCarry = null;
 				break;
 			}
 		}
