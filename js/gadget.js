@@ -55,7 +55,7 @@ pc.script.create('gadget', function (app) {
 		},
 
 		dropped: function(gPos){
-			if(this.captured === false) return false;
+			if(this.captured === false || this.holder === null) return false;
 
 			if(gPos == undefined){
 				this.posTarget = this.holder.getPosition().clone();

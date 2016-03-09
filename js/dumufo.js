@@ -8,7 +8,7 @@ pc.script.create('dumufo', function (app) {
 		this.beamParticle = null;
 
 		// Tween variables
-		this.animVars	= {x: 0, y: 5, z: 0, i: 0};
+		this.animVars	= {x: 0, y: 10, z: 0, i: 0};
 		this.twTransl	= new TWEEN.Tween(this.animVars).easing(Ez.Lin.None);
 		this.twRotate	= new TWEEN.Tween(this.animVars).easing(Ez.Sin.O);
 		this.quatNow 	= new pc.Quat();	// Current angle
@@ -28,6 +28,20 @@ pc.script.create('dumufo', function (app) {
 		update: function(dt){
 			this.entity.setPosition(this.animVars.x, this.animVars.y, this.animVars.z);
 			this.entity.setRotation(this.quatNow.slerp(this.quatNow, this.quatTrg, this.animVars.i));
+		},
+
+		birth: function(user){
+			this.entity.enabled = true;
+			app.root.addChild(this.entity);
+			this.entity.setPosition(user.x, user.y, user.z);
+			this.animVars.x = user.x;
+			this.animVars.y = user.y + 10;
+			this.animVars.z = user.z;
+			this.id = user.id;
+		},
+
+		kill: function(){
+			this.entity.destroy();
 		},
 
 		///////////////////////////////////// CONTROL LISTENERS /////////////////////////////////////

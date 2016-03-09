@@ -3,19 +3,23 @@ pc.script.create('dumbot', function (app) {
 	var Dumbot = function (entity) {
 		this.entity		= entity;
 		this.itemCarry	= null;					// Will contain gadget
+		this.faceMaterial = null;
+		this.beamParticle = null;
 
 		// Tween variables
-		this.animVars	= {x: 0, y: 5, z: 0, i: 0};
+		this.animVars	= {x: 26, y: 10, z: 0, i: 0};
 		this.twTransl	= new TWEEN.Tween(this.animVars).easing(Ez.Lin.None);
 		this.twRotate	= new TWEEN.Tween(this.animVars).easing(Ez.Sin.O);
 		this.quatNow 	= new pc.Quat();	// Current angle
 		this.quatTrg 	= new pc.Quat();	// Target angle
 		this.prevAngle	= 0;
+		this.beamStat 	= -1;
 	};
 
 	Dumbot.prototype = {
 		initialize: function(){
 			this.quatNow 	= this.entity.getRotation();
+			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
@@ -27,19 +31,39 @@ pc.script.create('dumbot', function (app) {
 			this.entity.rigidbody.syncEntityToBody();
 		},
 
-		updateParams: function(userParams){
+		updateParams: function(user){
 			this.twTransl.to({
-				x: userParams.x,
-				y: userParams.y,
-				z: userParams.z
+				x: user.x,
+				y: user.y,
+				z: user.z
 			}, 20).start();
 
-			if(userParams.a !== this.prevAngle){
+			if(user.a !== this.prevAngle){
 				this.animVars.i = 0;
-				this.prevAngle = userParams.a;
+				this.prevAngle = user.a;
 				this.twRotate.to({i: 1}, 1000).start();
-				this.quatTrg.setFromAxisAngle(pc.Vec3.UP, userParams.a);
+				this.quatTrg.setFromAxisAngle(pc.Vec3.UP, user.a);
 			}
+
+			// Abducted
+			if(user.v !== -1 && this.beamStat === -1){
+				this.beamStat = user.v;
+				setTimeout(function(){this.fireBeam();}.bind(this), 200);
+			}// Reset beam
+			else if(user.v == -1){
+				this.beamStat = -1;
+			}
+		},
+
+		birth: function(user){
+			this.entity.enabled = true;
+			app.root.addChild(this.entity);
+			this.entity.rigidbody.type = pc.BODYTYPE_KINEMATIC;
+			this.entity.setPosition(user.x, user.y + 10, user.z);
+			this.entity.rigidbody.syncEntityToBody();
+			this.animVars.x = user.x;
+			this.animVars.y = user.y + 10;
+			this.animVars.z = user.z;
 		},
 
 		kill: function(){
@@ -57,6 +81,11 @@ pc.script.create('dumbot', function (app) {
 		},
 
 		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
+		fireBeam: function(){
+			this.beamParticle.reset();
+			this.beamParticle.play();
+		},
+
 		enterDanger: function(){
 			this.faceMaterial.emissive = new pc.Vec3(1, 0, 0);
 			this.faceMaterial.update();

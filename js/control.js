@@ -15,7 +15,7 @@ pc.script.create('control', function (app) {
 		this.victimID	= -1;			// ID of victim
 		this.testIDH	= -1;			// Test ID of holder
 		this.testIDV	= -1;			// Test ID of victim
-		this.tempUsr	= null;			// For iteration
+		this.tempHold	= null;			// For iteration
 
 		this.vectorX	= 0;
 		this.vectorZ	= 0;
@@ -36,7 +36,6 @@ pc.script.create('control', function (app) {
 			this.socket.on("connect_error", this.sError.bind(this));
 			this.socket.on("disconnect", this.sDisc.bind(this));
 			this.socket.on("pCn", this.sConnected.bind(this));		// Connected
-			this.socket.on("pNw", this.playerCreate.bind(this));	// Players new
 			this.socket.on("pUp", this.sUpdateStatus.bind(this));		// Players update
 			this.changeDirection();
 		},
@@ -45,8 +44,7 @@ pc.script.create('control', function (app) {
 		// Called every frame
 		update: function(dt){
 			TWEEN.update();
-			if(this.sStatus !== "connected"){return false;}
-			if(this.receiver == null){return false;}
+			if(this.sStatus !== "connected" || this.receiver == null){return false;}
 			this.vectorX = 0;
 			this.vectorZ = 0;
 			
@@ -95,8 +93,8 @@ pc.script.create('control', function (app) {
 
 			// A Button
 			if(app.keyboard.wasPressed(pc.KEY_O)){
-				this.receiver.btnA();
-				if(this.id === 0){
+				this.receiver.btnA(); 
+				if(this.type === 1){
 					this.gadgetIDropped();
 				}
 			}
@@ -132,7 +130,7 @@ pc.script.create('control', function (app) {
 			this.autoTimer = 0;
 		},
 
-		//////////////////////////////////// SOCKET EVENT EMITTERS ////////////////////////////////////
+		//////////////////////////////////// EVENT EMITTERS ////////////////////////////////////
 		// Player moved event
 		receiverMoved: function(){
 			this.socket.emit("pMv", {
@@ -153,8 +151,7 @@ pc.script.create('control', function (app) {
 			}else{
 				for(dummy in this.dummies){
 					if(this.dummies[dummy] == victim){
-						console.log("Loop dummy found: " + dummy);
-						this.testIDV = dummy;
+						this.testIDV = +dummy;
 						break;
 					}
 				}
@@ -167,7 +164,6 @@ pc.script.create('control', function (app) {
 
 		gadgetIDropped: function(){
 			this.testIDH = -1;
-			console.log("Attempting drop from " + this.holderID + " : " + this.id);
 		},
 
 		//////////////////////////////////// SOCKET EVENT LISTENERS ////////////////////////////////////
@@ -234,80 +230,22 @@ pc.script.create('control', function (app) {
 
 		// Disconnected
 		sDisc: function(){
-			// Drop gadget
-			if(this.receiver.itemCarry){
-				this.gadget.script.gadget.dropped();
-			}
-
 			// Destroy receiver
 			console.log("Disconnected");
-			this.receiverE.destroy();
+			this.gadget.script.gadget.dropped();
 			this.receiver = null;
+			this.receiverE.destroy();
 			this.receiverE = null;
 			this.sStatus = "disconnected";
 			this.id = null;
 
-			// Delete all users
+			// Delete all dummies
 			for(user in this.dummies){
-				if(this.id === user){
-					continue;
-				}else{
-					this.playerDestroy(user);
-				}
+				this.playerDestroy(user);
 			}
 
 			// Disconnect camera
 			this.camera.script.camera.disconnect();
-		},
-
-		// Update game status
-		sUpdateStatus: function(allUsers){
-			if(!this.gadget.script.gadget){return false};
-
-			// Positions
-			for(user in allUsers){
-				if(this.id === allUsers[user].id){
-					if(allUsers[user].v == this.id && this.victimID === -1){
-						this.victimID = this.id;
-						this.receiver.abduct(allUsers[user]);
-					}else{
-						this.victimID = allUsers[user].v;
-					}
-					// Reset test IDV when we know server has read it
-					if(this.testIDV === allUsers[user].v){this.testIDV = -1;}
-					continue;
-				}
-				
-				if(allUsers[user].t === 0){// UFO
-					this.dummies[user].script.dumufo.updateParams(allUsers[user]);
-				}else{	// Bot
-					this.dummies[user].script.dumbot.updateParams(allUsers[user]);
-				}
-			}
-
-			this.tempUsr = allUsers[Object.keys(allUsers)[0]].h;
-			// New pickup
-			if(this.tempUsr !== -1 && this.holderID === -1){
-				this.holderID = this.tempUsr;
-				this.testIDH = this.tempUsr;
-				if(this.holderID !== this.id){
-					this.gadget.script.gadget.pickedUp(this.dummies[this.tempUsr]);
-				}else{
-					this.gadget.script.gadget.pickedUp(this.receiverE);
-				}
-			}
-
-			// New dropped
-			else if(this.tempUsr === -1 && this.holderID !== -1){
-				this.gadget.script.gadget.dropped(allUsers[this.tempUsr]);
-				this.holderID = -1;
-				this.testIDH = -1;
-			}
-
-			// Check connects/disconnects
-			if(Object.keys(allUsers).length !== Object.keys(this.dummies).length + 1){
-				this.playerReconcile(allUsers);
-			}
 		},
 
 		// Connection error
@@ -317,24 +255,78 @@ pc.script.create('control', function (app) {
 			this.id = null;
 		},
 
+		// Update game status
+		sUpdateStatus: function(allUsers){
+			if(!this.gadget.script.gadget || this.receiver == null){return false};
+
+			// Check connects/disconnects
+			if(Object.keys(allUsers).length !== Object.keys(this.dummies).length + 1){
+				this.playerReconcile(allUsers);
+			}
+
+			this.tempHold = allUsers[Object.keys(allUsers)[0]].h;
+			// New pickup
+			if(this.tempHold !== -1 && this.holderID === -1){
+				this.holderID = this.tempHold;
+				this.testIDH = this.tempHold;
+				if(this.holderID !== this.id){
+					this.gadget.script.gadget.pickedUp(this.dummies[this.tempHold]);
+				}else{
+					this.gadget.script.gadget.pickedUp(this.receiverE);
+				}
+			}
+
+			// New dropped
+			else if(this.tempHold === -1 && this.holderID !== -1){
+				this.gadget.script.gadget.dropped(allUsers[this.tempHold]);
+				this.holderID = -1;
+				this.testIDH = -1;
+			}
+
+			// Positions
+			for(user in allUsers){
+				if(this.id === allUsers[user].id){
+					if(allUsers[user].v === this.id && this.victimID === -1){
+						this.victimID = this.id;
+						this.receiver.abduct(allUsers[user]);
+					}else{
+						this.victimID = allUsers[user].v;
+					}
+					// Reset test IDV when we know server has read it
+					if(this.testIDV === allUsers[user].v){this.testIDV = -1;}
+					// Game over, switch players
+					if(allUsers[user].t !== this.type){
+						this.resetPlayers(allUsers);
+						return false;
+					}
+					continue;
+				}
+				
+				if(allUsers[user].t === 0){// UFO
+					this.dummies[user].script.dumufo.updateParams(allUsers[user]);
+				}else{	// Bot
+					this.dummies[user].script.dumbot.updateParams(allUsers[user]);
+				}
+			}
+		},
+
 		//////////////////////////////////// PLAYER CREATION ////////////////////////////////////
 		// New player connected
 		playerCreate: function(user){
+			console.log("Creating " + user.id);
 			if(user.t === 0){	// Ufo
 				this.dummies[user.id] = app.root.findByName("Ufo").clone();
 				app.systems.script.addComponent(this.dummies[user.id], {
 					scripts: [{url: "dumufo.js"}]
 				});
+				this.dummies[user.id].script.dumufo.birth(user);
 			}else{	// Bot
 				this.dummies[user.id] = app.root.findByName("Bot").clone();
-				this.dummies[user.id].rigidbody.type = pc.BODYTYPE_KINEMATIC;
 				app.systems.script.addComponent(this.dummies[user.id], {
 					scripts: [{url: "dumbot.js"}]
 				});
+				this.dummies[user.id].script.dumbot.birth(user);
 			}
-			this.dummies[user.id].setPosition(user.x, user.y, user.z);
-			this.dummies[user.id].enabled = true;
-			app.root.addChild(this.dummies[user.id]);
 		},
 
 		// Player disconnected
@@ -342,6 +334,8 @@ pc.script.create('control', function (app) {
 			console.log("Destroying " + discID);
 			if(this.dummies[discID].script.dumbot){
 				this.dummies[discID].script.dumbot.kill();
+			}else{
+				this.dummies[discID].script.dumufo.kill();
 			}
 			delete this.dummies[discID];
 		},
@@ -350,22 +344,34 @@ pc.script.create('control', function (app) {
 		playerReconcile: function(allUsers){
 			// Connect new 
 			if(Object.keys(allUsers).length > Object.keys(this.dummies).length + 1){
-				console.log("Creating player...");
 				for(var i = 0; i < Object.keys(allUsers).length; i++){
-					if(!this.dummies[Object.keys(allUsers)[i]] && Object.keys(allUsers)[i] !== this.id){
-						// Connect!
+					if(!this.dummies[Object.keys(allUsers)[i]] && Object.keys(allUsers)[i] != this.id){
+						this.playerCreate(allUsers[Object.keys(allUsers)[i]]);
 					}
 				}
 			}
 			// Disconnect
 			else if(Object.keys(allUsers).length < Object.keys(this.dummies).length + 1){
-				console.log("Destroying player...");
 				for(var i = 0; i < Object.keys(this.dummies).length; i++){
 					if(!allUsers[Object.keys(this.dummies)[i]] && Object.keys(this.dummies)[i] !== this.id){
 						this.playerDestroy(Object.keys(this.dummies)[i]);
 					}
 				}
 			}
+		},
+
+		resetPlayers: function(allUsers){
+			this.receiver = null;
+			this.receiverE.destroy();
+			this.receiverE = null;
+
+			// Delete all users
+			for(user in this.dummies){
+				this.playerDestroy(user);
+			}
+
+			// Disconnect camera
+			this.camera.script.camera.disconnect();
 		}
 	};
 

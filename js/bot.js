@@ -4,13 +4,14 @@ pc.script.create('bot', function (app) {
 		// Robot parts
 		this.entity		= entity;
 		this.controller = null;
+		this.beamParticle = null;
+		this.faceMaterial = null;
 
 		// Physics vars
 		this.TIME_MULT	= 1;				// Time multiplier (for slo-mo)
 		this.velocity	= 0;				// Current velocity
 		this.ACCEL		= 0.002;			// Acceleration
 		this.MAX_VEL	= 0.07;				// Maximum velocity
-		this.faceMaterial = null;
 
 		// Status variables
 		this.oldPos = null;
@@ -30,6 +31,7 @@ pc.script.create('bot', function (app) {
 		initialize: function(){
 			this.quatNow 	= this.entity.getRotation();
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
+			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
 			
@@ -114,6 +116,9 @@ pc.script.create('bot', function (app) {
 		abduct: function(){
 			this.entity.setPosition((Math.random() < 0.5) ? -1 : 1, 1.8, (Math.random() < 0.5) ? -1 : 1);
 			this.entity.rigidbody.syncEntityToBody();
+			this.beamParticle.reset();
+			this.beamParticle.play();
+			this.velocity = 0;
 		},
 
 		onTriggerEnter: function(result){

@@ -7,6 +7,7 @@ var Player = require("./modules/player");
 var sID			= -1;	// Short id counter
 var users		= {};	// All user data
 var gadget = {id: -1, x: -26, y: 1.5, z:0};
+var game = {points1: 0, points2: 0, teamCop: 0, paused: false};
 
 io.on("connection", function(socket){
 	// New player
@@ -14,7 +15,6 @@ io.on("connection", function(socket){
 	var userID = sID;
 	users[userID] = new Player(userID, countTypes());
 	console.log("Connected to " + users[userID].id);
-	socket.broadcast.emit("pNw", users[userID]);
 	socket.emit("pCn", users[userID], users, gadget);
 
 	// Disconnected player
@@ -22,7 +22,7 @@ io.on("connection", function(socket){
 		console.log("Disconnected " + userID);
 		// If holding, drop gadget
 		if(userID === gadget.id){
-			updateGadgetHolder(-1);
+			changeGadgetHolder(-1);
 		}
 		delete users[userID];
 	});
@@ -30,11 +30,6 @@ io.on("connection", function(socket){
 	// Player Moved
 	socket.on("pMv", function(posData){
 		parseMovedData(userID, posData);
-	});
-
-	// Player beam
-	socket.on("pBm", function(){
-		// userID
 	});
 });
 
@@ -44,71 +39,79 @@ function statusBroadcast(){
 }
 
 function parseMovedData(userID, posData){
-	if(posData.v !== -1){
-		console.log("Attempting with " + posData.v);
-	}
-	// If UFO
-	if(users[userID].t === 0 && users[userID].v === -1){
-		// Fired on target
-		if(posData.v > 0){
-			// Corroborate with proximity algorithm
-			users[userID].v = posData.v;
-			setTimeout(cooldown, 2000, userID);
-
-			users[posData.v].v = posData.v;
-			setTimeout(cooldown, 1000, posData.v);
-			console.log(userID + " is abducting: " + users[posData.v].id);
-			// If victim is carrying
-			if(gadget.id === posData.v){
-				updateGadgetHolder(-1);
-			}
-		}else if(posData.v === -2){
-			console.log("Missed");
-			users[userID].v = -2;
-			setTimeout(cooldown, 2000, userID);
-		}
-	}else{// If Bot
-
-	}
-
+	if(game.paused === true){return false;}
 	// Move positions
 	users[userID].x = posData.x;
 	users[userID].y = posData.y;
 	users[userID].z = posData.z;
 	users[userID].a = posData.a;
 
+	// UFO Beam
+	if(posData.v !== -1 && users[userID].t === 0 && users[userID].v === -1){
+		// Fired on target
+		if(posData.v >= 0){
+			// Corroborate with proximity algorithm
+			users[userID].v = posData.v;
+			setTimeout(cooldown, 2000, userID);
 
-	// If user claims to be holder
-	if(gadget.id === -1 && posData.h === userID){
+			users[posData.v].v = posData.v;
+			setTimeout(cooldown, 1000, posData.v);
+			// If victim is carrying
+			if(gadget.id === posData.v){
+				changeGadgetHolder(-1);
+			}
+		}else if(posData.v === -2){
+			users[userID].v = -2;
+			setTimeout(cooldown, 2000, userID);
+		}
+	}
+
+	// Pickup
+	if(gadget.id === -1 && posData.h === userID && users[userID].v !== userID){
 		// Corroborate with proximity algorithm
-		console.log("Gadget held by: " + userID);
-		updateGadgetHolder(posData.h);
+		console.log("Pickup?");
+		changeGadgetHolder(posData.h);
 	}
 
-	// If holder has dropped
-	if(gadget.id !== -1 && gadget.id === userID && posData.h === -1){
-		console.log("Gadget dropped by: " + userID);
-		updateGadgetHolder(posData.h);
+	// Drop
+	if(gadget.id === userID && posData.h === -1){
+		console.log("Drop?");
+		changeGadgetHolder(posData.h);
 	}
 
-	// Update gadget pos if holder
+	// Gadget pos update
 	if(userID === posData.h && userID === gadget.id){
 		gadget.x = posData.x;
 		gadget.y = posData.y;
 		gadget.z = posData.z;
+		if(gadget.x > 25.5 && gadget.x < 27.5 && gadget.z > -1 && gadget.z < 1){
+			gameWin();
+		}
 	}
+}
+
+function gameWin(){
+	game.paused = true;
+	setTimeout(function(){game.paused = false}, 3000);
+	for(user in users){
+		users[user].t = (users[user].t - 1) * -1;
+		users[user].v = -1;
+		users[user].h = -1;
+	}
+	gadget = {x: -26, y: 1.5, z:0};
+	changeGadgetHolder(-1);
 }
 
 function cooldown(userID){
 	if(typeof users[userID].v === "undefined") return false;
-	console.log("Cooling down " + userID + " from victim " + users[userID].v);
 	users[userID].v = -1;
 }
 
 // Drops gadget
-function updateGadgetHolder(holderID){
+function changeGadgetHolder(holderID){
 	gadget.id = holderID;
 
+	console.log("New gadget id " + gadget.id);
 	for(user in users){
 		users[user].h = holderID;
 	}
