@@ -51,7 +51,7 @@ pc.script.create('dumufo', function (app) {
 				x: userParams.x,
 				y: userParams.y,
 				z: userParams.z
-			}, 20).start();
+			}, 60).start();
 
 			// Rotate
 			if(userParams.a !== this.prevAngle){

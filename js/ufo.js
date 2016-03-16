@@ -22,38 +22,36 @@ pc.script.create('ufo', function (app) {
 		this.victim		= null;
 
 		// Status variables
-		this.beamCoolDown	= 0;
-        this.posTimer = 0;
+		this.beamCooled	= true;
+		this.heartbeat	= null;
 		
 		// Components
 		this.beamParticle = null;
 	};
 
 	Ufo.prototype = {
-		// Called once after all resources are loaded and before the first update
 		initialize: function () {
 			this.quatNow 	= this.entity.getRotation();
 			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
 		},
-		
-		// Called every frame, dt is time in seconds since last update
-		update: function (dt) {
-			if(this.beamCoolDown > 0){
-				this.beamCoolDown -= dt;
-			}
 
-            this.posTimer += dt;
-            if(this.posTimer >= 0.02){
-                this.controller.receiverMoved();
-                this.posTimer = 0;
-            }
+		destroy: function(){
+			if(this.heartbeat != 0){
+				clearInterval(this.heartbeat);
+			}
+		},
+		
+		update: function (dt) {
+			if(this.beamCooled > 0){
+				this.beamCooled -= dt;
+			}
 		},
 
 		///////////////////////////////////// BEHAVIORS /////////////////////////////////////
 		fireBeam: function(){
-			if(this.beamCoolDown > 0) return false;
+			if(this.beamCooled === false){return false;}
 
 			if(this.victim !== null){
 				this.controller.receiverBeam(this.victim);
@@ -63,13 +61,17 @@ pc.script.create('ufo', function (app) {
 
 			this.beamParticle.reset();
 			this.beamParticle.play();
-			this.beamCoolDown = 2;
+			this.beamCooled = false;
+			setTimeout(function(){this.beamCooled = true;}.bind(this), 2000);
 		},
 
 		///////////////////////////////////// CONTROL LISTENERS /////////////////////////////////////
 		// Connect to controller
 		connect: function(controller){
 			this.controller = controller;
+			this.heartbeat = setInterval(function(){
+				this.controller.receiverMoved(this.entity.getPosition());
+			}.bind(this), 60);
 		},
 
 		// Ufo will move toward angle
@@ -103,12 +105,6 @@ pc.script.create('ufo', function (app) {
 
 		btnB: function(){
 
-		},
-
-		reset: function(){
-			this.prevAngle = 0;
-			this.entity.setPosition(-15, 1.5, 0);
-			// this.entity.rigidbody.teleport(0, 3, 0, 0, 0, 0);
 		},
 
 		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////

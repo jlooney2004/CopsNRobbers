@@ -13,40 +13,27 @@ pc.script.create('bot', function (app) {
 		this.ACCEL		= 0.002;			// Acceleration
 		this.MAX_VEL	= 0.07;				// Maximum velocity
 
-		// Status variables
-		this.oldPos = null;
-		this.newPos = null;
-		this.posTimer = 0;
-
 		// Tween variables
-		this.quatNow 	= new pc.Quat();	// Current angle
-		this.quatTrg 	= new pc.Quat();	// Target angle
-		this.prevAngle	= 0;
+		this.quatNow	= new pc.Quat();	// Current angle
+		this.quatTrg	= new pc.Quat();	// Target angle
+		this.prevAngle	= -90;
 		this.animVars	= {rotateI: 0};
 		this.twRotate	= new TWEEN.Tween(this.animVars).easing(Ez.Sin.O);
+		this.heartbeat	= null;
 	};
 
 	Bot.prototype = {
-		// Called once after all resources are loaded and before the first update
 		initialize: function(){
 			this.quatNow 	= this.entity.getRotation();
 			this.faceMaterial = this.entity.findByName("BotModel").model.model.meshInstances[1].material;
 			this.beamParticle = this.entity.findByName("BeamUp").particlesystem;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
-			
-			this.newPos = this.entity.getPosition();
-			this.oldPos = new pc.Vec3();
 		},
-		
-		// Called every frame, dt is time in seconds since last update
-		update: function(dt){
-			this.newPos = this.entity.getPosition();
-			this.posTimer += dt;
-			if(this.posTimer >= 0.02 && !this.newPos.equals(this.oldPos)){
-				this.oldPos = this.newPos.clone();
-				this.controller.receiverMoved();
-				this.posTimer = 0;
+
+		destroy: function(){
+			if(this.heartbeat != 0){
+				clearInterval(this.heartbeat);
 			}
 		},
 
@@ -54,6 +41,9 @@ pc.script.create('bot', function (app) {
 		// Connect to controller
 		connect: function(controller){
 			this.controller = controller;
+			this.heartbeat = setInterval(function(){
+				this.controller.receiverMoved(this.entity.getPosition());
+			}.bind(this), 60);
 		},
 
 		// Bot will move toward angle
@@ -95,20 +85,11 @@ pc.script.create('bot', function (app) {
 		},
 
 		btnA: function(){
-
+			this.controller.receiverDropped();
 		},
 
 		btnB: function(){
 
-		},
-
-		// Teleport to a location
-		reset: function(){
-			if(this.entity.getPosition().x > 0){
-				this.entity.rigidbody.teleport(-27, 1.8, 0, 0, 0, 0);
-			}else{
-				this.entity.rigidbody.teleport(10, 0.3, 0, 0, 0, 0);
-			}
 		},
 
 		///////////////////////////////////// EVENT LISTENERS /////////////////////////////////////
@@ -127,7 +108,7 @@ pc.script.create('bot', function (app) {
 					this.enterDanger();
 				break;
 				case "Gadget":
-					this.controller.gadgetIPicked();
+					this.controller.receiverPicked();
 				break;
 			}
 		},

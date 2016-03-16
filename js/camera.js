@@ -19,7 +19,7 @@ pc.script.create('camera', function (app) {
 		postUpdate: function(dt){
 			if(this.focus === null){return false;}
 			this.vecTarget = this.focus.getPosition();
-			this.vecTarget.x /= 1.3;
+			this.vecTarget.x /= 1.1;
 			this.vecTarget.y = 10;
 			this.vecTarget.z = (this.vecTarget.z + 10) / 1.3;
 			this.vecActual.lerp(this.vecActual, this.vecTarget, dt);
@@ -38,7 +38,7 @@ pc.script.create('camera', function (app) {
 		// Focus on stage
 		disconnect: function(focus){
 			this.status = "disconnected";
-			this.focus = null;
+			this.focus = app.root.findByName("GLight");
 		}
 	};
 

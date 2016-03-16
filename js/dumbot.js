@@ -36,7 +36,7 @@ pc.script.create('dumbot', function (app) {
 				x: user.x,
 				y: user.y,
 				z: user.z
-			}, 20).start();
+			}, 60).start();
 
 			if(user.a !== this.prevAngle){
 				this.animVars.i = 0;

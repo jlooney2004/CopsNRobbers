@@ -19,11 +19,11 @@ pc.script.create('gadget', function (app) {
 	Gadget.prototype = {
 		// Called once after all resources are loaded and before the first update
 		initialize: function () {
-			this.startHoverAnim();
 			this.posStart = this.entity.getPosition();
 			this.posTarget = this.posStart;
 			this.entity.collision.on("triggerenter", this.onTriggerEnter.bind(this));
 			this.entity.collision.on("triggerleave", this.onTriggerLeave.bind(this));
+			this.startHoverAnim();
 		},
 
 		// Called every frame, dt is time in seconds since last update
@@ -44,12 +44,9 @@ pc.script.create('gadget', function (app) {
 
 			this.captured = true;
 			this.holder = newHolder;
-			console.log("Picked up by");
-			console.log(this.holder);
 			this.animVars.yPos = this.entity.getPosition().y - this.holder.getPosition().y;
 			this.entity.reparent(this.holder);
 			this.posTarget = this.posOnBot.clone();
-			console.log("Setting Pos Target to: " + this.posTarget.toString());
 			this.twHover.to({yPos: -0.3}, 250).easing(Ez.Pow2.O).repeat(0).start();
 			this.twRotate.to({yAngle: 0}, 250).repeat(0).easing(Ez.Pow2.O).start();
 		},
@@ -59,6 +56,7 @@ pc.script.create('gadget', function (app) {
 
 			if(gPos == undefined){
 				this.posTarget = this.holder.getPosition().clone();
+				this.posTarget.y -= 0.3;
 			}else{
 				this.posTarget.x = gPos.x;
 				this.posTarget.y = gPos.y;

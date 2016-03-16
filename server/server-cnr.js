@@ -54,11 +54,15 @@ function parseMovedData(userID, posData){
 			users[userID].v = posData.v;
 			setTimeout(cooldown, 2000, userID);
 
-			users[posData.v].v = posData.v;
-			setTimeout(cooldown, 1000, posData.v);
-			// If victim is carrying
-			if(gadget.id === posData.v){
-				changeGadgetHolder(-1);
+			// Ensure user exists
+			if(users[posData.v]){
+				users[posData.v].v = posData.v;
+				setTimeout(cooldown, 1000, posData.v);
+				checkCopsWin(posData.v);
+				// If victim is carrying
+				if(gadget.id === posData.v){
+					changeGadgetHolder(-1);
+				}
 			}
 		}else if(posData.v === -2){
 			users[userID].v = -2;
@@ -69,13 +73,11 @@ function parseMovedData(userID, posData){
 	// Pickup
 	if(gadget.id === -1 && posData.h === userID && users[userID].v !== userID){
 		// Corroborate with proximity algorithm
-		console.log("Pickup?");
 		changeGadgetHolder(posData.h);
 	}
 
 	// Drop
 	if(gadget.id === userID && posData.h === -1){
-		console.log("Drop?");
 		changeGadgetHolder(posData.h);
 	}
 
@@ -85,25 +87,50 @@ function parseMovedData(userID, posData){
 		gadget.y = posData.y;
 		gadget.z = posData.z;
 		if(gadget.x > 25.5 && gadget.x < 27.5 && gadget.z > -1 && gadget.z < 1){
-			gameWin();
+			RobbersWin();
 		}
 	}
 }
 
-function gameWin(){
+function RobbersWin(){
+	console.log("Robbers win!");
 	game.paused = true;
 	setTimeout(function(){game.paused = false}, 3000);
 	for(user in users){
-		users[user].t = (users[user].t - 1) * -1;
-		users[user].v = -1;
-		users[user].h = -1;
+		users[user].respawn();
 	}
-	gadget = {x: -26, y: 1.5, z:0};
-	changeGadgetHolder(-1);
+	gadget = {id: -1, x: -26, y: 1.5, z:0};
+}
+
+function checkCopsWin(latest){
+	var botsTotal = 0;
+	var botsCaught = 0;
+	for(user in users){
+		if(users[user].id !== latest && users[user].t === 1){
+			botsTotal ++;
+			if(	users[user].y > 1 && 
+				users[user].x > -4.5 && 
+				users[user].x < 4.5 && 
+				users[user].z > -4.5 && 
+				users[user].z < 4.5){
+				botsCaught ++;
+			}
+		}
+	}
+
+	if(botsTotal === botsCaught){
+		console.log("Cops win!");
+		game.paused = true;
+		setTimeout(function(){game.paused = false}, 3000);
+		for(user in users){
+			users[user].respawn();
+		}
+		gadget = {id: -1, x: -26, y: 1.5, z:0};
+	}
 }
 
 function cooldown(userID){
-	if(typeof users[userID].v === "undefined") return false;
+	if(typeof users[userID] === "undefined") return false;
 	users[userID].v = -1;
 }
 
@@ -111,13 +138,12 @@ function cooldown(userID){
 function changeGadgetHolder(holderID){
 	gadget.id = holderID;
 
-	console.log("New gadget id " + gadget.id);
 	for(user in users){
 		users[user].h = holderID;
 	}
 }
 
-// Counts how many ufos and bots exist
+// Counts what type is needed
 function countTypes(){
 	var iUfo = 0;
 	var iBot = 0;
@@ -136,7 +162,7 @@ function countTypes(){
 	}
 }
 
-setInterval(statusBroadcast, 20);
+setInterval(statusBroadcast, 60);
 
 http.listen(8080, function(){
 	console.log("listening on *:8080");

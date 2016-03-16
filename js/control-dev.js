@@ -17,7 +17,6 @@ pc.script.create('control', function (app) {
 		this.testIDV	= -1;			// Test ID of victim
 		this.tempHold	= null;			// For iteration
 
-		// this.btns		= {up: false, dn: false, left: false, right: false};
 		this.vectorX	= 0;
 		this.vectorZ	= 0;
 		this.yAngle		= 0;
@@ -25,12 +24,6 @@ pc.script.create('control', function (app) {
 		this.autoZ		= 0;
 		this.autoTimer	= 0;
 		this.autoTimerMax = getRandNo(1, 3);
-
-		// Mobile touch elements
-		this.cardinals = [];
-		this.btnA = null;
-		this.touched = null;
-		this.oldTouched = null;
 	};
 
 	Control.prototype = {
@@ -39,42 +32,65 @@ pc.script.create('control', function (app) {
 			this.camera = app.root.findByName("Cam");
 			this.gadget = app.root.findByName("Gadget");
 			this.sStatus = "initializing";
+			this.socket = io("http://localhost:8080");
+			this.socket.on("connect_error", this.sError.bind(this));
+			this.socket.on("disconnect", this.sDisc.bind(this));
+			this.socket.on("pCn", this.sConnected.bind(this));
+			this.socket.on("pUp", this.sUpdateStatus.bind(this));
 			this.changeDirection();
-			this.loadHUD();
 		},
-
+		
 		//////////////////////////////////// KEYBOARD CONTROLS ////////////////////////////////////
 		// Called every frame
 		update: function(dt){
 			TWEEN.update();
 			if(this.sStatus !== "connected" || this.receiver == null){return false;}
-
-			// If not touch device
-			if(!('ontouchstart' in window || navigator.maxTouchPoints)){
-				this.vectorX = 0;
-				this.vectorZ = 0;
-
-				// WASD Controls
-				if(app.keyboard.isPressed(pc.KEY_A)){
-					this.vectorX --;
-				}
-				if(app.keyboard.isPressed(pc.KEY_D)){
-					this.vectorX ++;
-				}
-				if(app.keyboard.isPressed(pc.KEY_W)){
-					this.vectorZ --;
-				}
-				if(app.keyboard.isPressed(pc.KEY_S)){
-					this.vectorZ ++;
-				}
-			}
+			this.vectorX = 0;
+			this.vectorZ = 0;
 			
+			// WASD Controls
+			if(app.keyboard.isPressed(pc.KEY_A)){
+				this.vectorX --;
+			}
+			if(app.keyboard.isPressed(pc.KEY_D)){
+				this.vectorX ++;
+			}
+			if(app.keyboard.isPressed(pc.KEY_W)){
+				this.vectorZ --;
+			}
+			if(app.keyboard.isPressed(pc.KEY_S)){
+				this.vectorZ ++;
+			}
 			if(this.vectorX !== 0 || this.vectorZ !== 0){
 				this.buttonMove(dt);
 			}
 			else{
 				this.noButtonMove();
 			}
+			// else{
+			// 	this.autoTimer += dt;
+			// 	if(this.autoTimer > this.autoTimerMax){
+			// 		this.changeDirection();
+			// 	}
+			// 	// Auto controls
+			// 	if(this.autoX === 1){
+			// 		this.vectorX --;
+			// 	}
+			// 	if(this.autoX === 2){
+			// 		this.vectorX ++;
+			// 	}
+			// 	if(this.autoZ === 1){
+			// 		this.vectorZ --;
+			// 	}
+			// 	if(this.autoZ === 2){
+			// 		this.vectorZ ++;
+			// 	}
+			// 	if(this.vectorX !== 0 || this.vectorZ !== 0){
+			// 		this.buttonMove(dt);
+			// 	}else{
+			// 		this.noButtonMove(dt);
+			// 	}
+			// }
 
 			// A Button
 			if(app.keyboard.wasPressed(pc.KEY_SPACE)){
@@ -85,11 +101,22 @@ pc.script.create('control', function (app) {
 			if(app.keyboard.wasPressed(pc.KEY_P)){
 				this.receiver.btnB();
 			}
+
+			// Reset
+			if(app.keyboard.wasPressed(pc.KEY_T)){
+				this.receiver.reset();
+			}
 		},
 
-		calculateVectors: function(){
 
-		},
+		// Teleport to a location (goes in receiver)
+		/*reset: function(){
+			if(this.entity.getPosition().x > 0){
+				this.entity.rigidbody.teleport(-27, 1.8, 0, 0, 0, 0);
+			}else{
+				this.entity.rigidbody.teleport(10, 0.3, 0, 0, 0, 0);
+			}
+		},*/
 
 		buttonMove: function(dt){
 			// Calculate y Angle from x & z vectors
@@ -148,15 +175,6 @@ pc.script.create('control', function (app) {
 		},
 
 		//////////////////////////////////// SOCKET EVENT LISTENERS ////////////////////////////////////
-		sConnect: function(){
-			console.log("Connecting...");
-			this.socket = io("http://192.232.206.48:8080");
-			this.socket.on("connect_error", this.sError.bind(this));
-			this.socket.on("disconnect", this.sDisc.bind(this));
-			this.socket.on("pCn", this.sConnected.bind(this));
-			this.socket.on("pUp", this.sUpdateStatus.bind(this));
-		},
-
 		// Connected socket
 		sConnected: function(newUser, allUsers, gInfo){
 			this.id = newUser.id;
@@ -200,6 +218,8 @@ pc.script.create('control', function (app) {
 			this.camera.script.camera.connect(this.receiverE);
 
 			// Create gadget
+			console.log("Creating gadget");
+			console.log(gInfo);
 			this.gadget.enabled = true;
 			if(gInfo.id === -1){
 				this.gadget.setPosition(gInfo.x, gInfo.y, gInfo.z);
@@ -282,6 +302,7 @@ pc.script.create('control', function (app) {
 					if(this.testIDV === allUsers[user].v){this.testIDV = -1;}
 					// Game over, switch players
 					if(allUsers[user].t !== this.type){
+						console.log("This type has changed to " + allUsers[user].t);
 						this.resetPlayers(allUsers);
 						return false;
 					}
@@ -299,6 +320,7 @@ pc.script.create('control', function (app) {
 		//////////////////////////////////// PLAYER CREATION ////////////////////////////////////
 		// New player connected
 		playerCreate: function(user){
+			console.log("Creating " + user.id);
 			if(user.t === 0){	// Ufo
 				this.dummies[user.id] = app.root.findByName("Ufo").clone();
 				app.systems.script.addComponent(this.dummies[user.id], {
@@ -316,6 +338,7 @@ pc.script.create('control', function (app) {
 
 		// Player disconnected
 		playerDestroy: function(discID){
+			console.log("Destroying " + discID);
 			if(this.dummies[discID].script.dumbot){
 				this.dummies[discID].script.dumbot.kill();
 			}else{
@@ -358,119 +381,6 @@ pc.script.create('control', function (app) {
 			this.camera.script.camera.disconnect();
 
 			this.sConnected(allUsers[this.id], allUsers, {id: -1, x: -26, y: 1.5, z:0});
-		},
-
-		loadHUD: function(){
-			// get asset from registry by id
-			var htmlAsset = app.assets.get(3742526);
-
-			if(!htmlAsset.resource){
-				app.assets.once("load:3742526", function (asset) {
-					var div = document.createElement('div');
-					div.innerHTML = htmlAsset.resource || '';
-					document.body.appendChild(div);
-					var btnOK = document.getElementById("okBtn");
-					btnOK.addEventListener("click", function(){
-						this.sConnect();
-						btnOK.parentNode.parentNode.classList.add("hidden");
-					}.bind(this), false);
-					this.mobileAdjusts();
-				}.bind(this));
-
-				app.assets.load(htmlAsset);
-			}else{
-				console.log("Already loaded");
-			}
-		},
-
-		mobileAdjusts: function(){
-			if('ontouchstart' in window || navigator.maxTouchPoints){
-				// Var declaration
-				this.cardinals = document.getElementsByClassName("st5");
-				this.btnA = document.getElementById("btnA");
-
-				document.getElementById("cardinals").classList.add("visible");
-				this.btnA.classList.add("visible");
-				// Event binding
-				for(var i = 0; i < 8; i++){
-					this.cardinals[i].addEventListener("touchstart", cardinalTouched.bind(this), false);
-					this.cardinals[i].addEventListener("touchend", cardinalEnd.bind(this), false);
-					this.cardinals[i].addEventListener("touchmove", cardinalMoved.bind(this), false);
-				}
-				this.btnA.addEventListener("touchstart", pressA.bind(this), false);
-				this.btnA.addEventListener("touchend", releaseA.bind(this), false);
-
-				// Event listeners
-				function cardinalTouched(evt){
-					this.oldTouched = evt.target;
-					this.touched = evt.target;
-					evt.target.classList.add("active");
-					this.mobileVectors(this.touched.id);
-					evt.preventDefault();
-				}
-				function cardinalEnd(evt){
-					this.touched.classList.remove("active");
-					this.mobileVectors();
-					evt.preventDefault();
-				}
-				function cardinalMoved(evt){
-					this.touched = document.elementFromPoint(evt.touches[0].clientX, evt.touches[0].clientY);
-					if(this.oldTouched != this.touched){
-						this.oldTouched.classList.remove("active");
-						this.oldTouched = this.touched;
-						this.touched.classList.add("active");
-					}
-					this.mobileVectors(this.touched.id);
-				}
-				function pressA(evt){
-					this.btnA.classList.add("pressed");
-					this.receiver.btnA();
-				}
-				function releaseA(evt){
-					this.btnA.classList.remove("pressed");
-				}
-			}
-		},
-
-		mobileVectors: function(vectorID){
-			switch(vectorID){
-				case "tN":
-					this.vectorZ = -1;
-					this.vectorX = 0;
-				break;
-				case "tNE":
-					this.vectorZ = -1;
-					this.vectorX = 1;
-				break;
-				case "tE":
-					this.vectorZ = 0;
-					this.vectorX = 1;
-				break;
-				case "tSE":
-					this.vectorZ = 1;
-					this.vectorX = 1;
-				break;
-				case "tS":
-					this.vectorZ = 1;
-					this.vectorX = 0;
-				break;
-				case "tSW":
-					this.vectorZ = 1;
-					this.vectorX = -1;
-				break;
-				case "tW":
-					this.vectorZ = 0;
-					this.vectorX = -1;
-				break;
-				case "tNW":
-					this.vectorZ = -1;
-					this.vectorX = -1;
-				break;
-				default:
-					this.vectorZ = 0;
-					this.vectorX = 0;
-				break;
-			}
 		}
 	};
 
