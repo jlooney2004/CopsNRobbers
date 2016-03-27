@@ -20,13 +20,13 @@ Player.prototype = {
 
 	assignStart: function(){
 		if(this.t === 0){	// Ufo
-			this.x = getRandInt(-15, -13);
+			this.x = getRandInt(-8, 8);
 			this.y = 1.5;
-			this.z = getRandInt(-8, 8);
+			this.z = getRandInt(-14, -11);
 		}else{ // Bot
-			this.x = getRandInt(25, 28);
+			this.x = getRandInt(-3, 3);
 			this.y = 1.8;
-			this.z = getRandInt(-5, 5);
+			this.z = getRandInt(17, 20);
 		}
 	}
 }

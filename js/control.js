@@ -151,6 +151,7 @@ pc.script.create('control', function (app) {
 		sConnect: function(){
 			console.log("Connecting...");
 			this.socket = io("http://192.232.206.48:8080");
+			// this.socket = io("http://localhost:8080");
 			this.socket.on("connect_error", this.sError.bind(this));
 			this.socket.on("disconnect", this.sDisc.bind(this));
 			this.socket.on("pCn", this.sConnected.bind(this));
@@ -357,7 +358,7 @@ pc.script.create('control', function (app) {
 			// Disconnect camera
 			this.camera.script.camera.disconnect();
 
-			this.sConnected(allUsers[this.id], allUsers, {id: -1, x: -26, y: 1.5, z:0});
+			this.sConnected(allUsers[this.id], allUsers, {id: -1, x: 0, y: 1.5, z: -19});
 		},
 
 		loadHUD: function(){

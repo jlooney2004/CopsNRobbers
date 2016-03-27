@@ -6,7 +6,7 @@ var Player = require("./modules/player");
 
 var sID			= -1;	// Short id counter
 var users		= {};	// All user data
-var gadget = {id: -1, x: -26, y: 1.5, z:0};
+var gadget = {id: -1, x: 0, y: 1.5, z: -19};
 var game = {points1: 0, points2: 0, teamCop: 0, paused: false};
 
 io.on("connection", function(socket){
@@ -86,7 +86,7 @@ function parseMovedData(userID, posData){
 		gadget.x = posData.x;
 		gadget.y = posData.y;
 		gadget.z = posData.z;
-		if(gadget.x > 25.5 && gadget.x < 27.5 && gadget.z > -1 && gadget.z < 1){
+		if(gadget.x > -1 && gadget.x < 1 && gadget.z > 18 && gadget.z < 20){
 			RobbersWin();
 		}
 	}
@@ -99,7 +99,7 @@ function RobbersWin(){
 	for(user in users){
 		users[user].respawn();
 	}
-	gadget = {id: -1, x: -26, y: 1.5, z:0};
+	gadget = {id: -1, x: 0, y: 1.5, z: -19};
 }
 
 function checkCopsWin(latest){
@@ -125,7 +125,7 @@ function checkCopsWin(latest){
 		for(user in users){
 			users[user].respawn();
 		}
-		gadget = {id: -1, x: -26, y: 1.5, z:0};
+		gadget = {id: -1, x: 0, y: 1.5, z: -19};
 	}
 }
 
